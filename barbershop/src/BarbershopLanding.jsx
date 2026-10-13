@@ -1,5 +1,5 @@
 /**
- * ГРАНЬ — лендинг премиального барбершопа.
+ * Onix Barbershop — лендинг премиального барбершопа.
  *
  * Один React-компонент: React 18, Tailwind CSS, Framer Motion 11,
  * GSAP 3 + ScrollTrigger (скролл-сцены) и Lucide React (иконки).
@@ -55,14 +55,14 @@ const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : use
 
 const ADDRESS = "Москва, Малая Бронная, 21";
 const PHONE = "+7 (495) 000-24-24";
-const TELEGRAM = "@gran_barber";
+const TELEGRAM = "@onix_barber";
 
 const SERVICES = [
   {
     id: "signature",
     icon: Scissors,
     cat: "Стрижка",
-    title: "Стрижка «Грань»",
+    title: "Стрижка «Onix»",
     price: 4500,
     time: 60,
     tool: "Ножницы и машинка",
@@ -122,8 +122,8 @@ const SERVICES = [
     price: 8900,
     time: 120,
     tool: "Стрижка + бритьё",
-    desc: "Стрижка «Грань», королевское бритьё и уход за кожей лица за один визит.",
-    includes: ["Стрижка «Грань»", "Королевское бритьё", "Маска и пилинг", "Напиток из бара"],
+    desc: "Стрижка «Onix», королевское бритьё и уход за кожей лица за один визит.",
+    includes: ["Стрижка «Onix»", "Королевское бритьё", "Маска и пилинг", "Напиток из бара"],
   },
 ];
 
@@ -628,12 +628,12 @@ function LoaderFace({ count, cut }) {
   return (
     <div className="relative h-full w-full">
       <div className="f-mono absolute left-4 right-4 top-6 flex justify-between text-[10px] uppercase tracking-[0.3em] text-white/45 sm:left-10 sm:right-10 sm:top-8">
-        <span>Барбершоп · Москва</span>
+        <span>Onix Barbershop · Москва</span>
         <span>Est. 2014</span>
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="f-display flex text-[clamp(5rem,24vw,18rem)] font-semibold leading-[0.82]" aria-hidden="true">
-          {[..."ГРАНЬ"].map((ch, i) => (
+        <div className="f-display flex text-[clamp(5.5rem,28vw,20rem)] font-semibold leading-[0.82]" aria-hidden="true">
+          {[..."ONIX"].map((ch, i) => (
             <span key={i} className="inline-block overflow-hidden pb-[0.04em]">
               <motion.span
                 className="gold-text inline-block"
@@ -819,10 +819,12 @@ function Nav({ ready, onNav }) {
                 go("top");
               }}
               className="flex items-baseline gap-3"
-              aria-label="Грань — наверх"
+              aria-label="Onix Barbershop — наверх"
             >
-              <span className="f-display text-2xl font-bold tracking-[0.18em] text-[#F7F5EF]">ГРАНЬ</span>
-              <span className="f-mono hidden text-[9px] uppercase tracking-[0.3em] text-[#D4AF37] sm:inline">Barber · MSK</span>
+              <span className="f-display text-2xl font-bold tracking-[0.18em] text-[#F7F5EF]">ONIX</span>
+              <span className="f-mono text-[9px] uppercase tracking-[0.3em] text-[#D4AF37]">
+                Barbershop<span className="hidden sm:inline"> · MSK</span>
+              </span>
             </a>
             <ul className="hidden items-center gap-9 lg:flex">
               {NAV.map((item) => (
@@ -984,7 +986,7 @@ function RazorArt({ ready }) {
           <motion.line key={x} x1={x} y1="4" x2={x} y2="9" stroke="#0B0B0B" strokeOpacity="0.55" strokeWidth="1" {...fade(1.8)} />
         ))}
         <motion.text x="118" y="27" className="f-mono" fontSize="11" letterSpacing="3" fill="#7A5C16" {...fade(2)}>
-          ГРАНЬ · 5/8
+          ONIX · 5/8
         </motion.text>
         {/* рукоять */}
         <motion.path d={HANDLE} fill="url(#gr-horn)" {...fade(1.6)} />
@@ -1220,7 +1222,7 @@ function Hero({ ready, onNav }) {
           className="f-display stroke-text absolute bottom-[-7vw] left-[-2vw] whitespace-nowrap text-[34vw] font-bold leading-none"
           style={{ x: wordX }}
         >
-          ГРАНЬ
+          ONIX
         </motion.div>
       </motion.div>
 
@@ -1411,7 +1413,7 @@ function Manifesto() {
           <p className="f-mono text-[11px] uppercase tracking-[0.3em] text-[#D4AF37]">[ Манифест ]</p>
           <div className="mf-seal relative aspect-square w-28 overflow-hidden rounded-full sm:w-40 lg:w-48">
             <Hallmark seed={5} background={false} cyRatio={0.5} />
-            <span className="f-display absolute inset-0 grid place-items-center text-2xl font-semibold italic text-[#F3DC8C] sm:text-3xl">Г</span>
+            <span className="f-display absolute inset-0 grid place-items-center text-2xl font-semibold italic text-[#F3DC8C] sm:text-3xl">O</span>
           </div>
         </div>
         <p className="mf-text f-display text-[clamp(2rem,4.8vw,4.6rem)] font-medium leading-[1.1] text-[#F7F5EF] lg:col-span-9">
@@ -1742,7 +1744,7 @@ function Ritual() {
         </div>
         <div ref={track} className="flex flex-col gap-5 px-4 sm:px-8 lg:w-max lg:flex-row lg:items-stretch lg:gap-6 lg:px-12">
           <div className="flex flex-col justify-center pb-8 lg:w-[36vw] lg:max-w-[560px] lg:pb-0 lg:pr-10">
-            <p className="f-mono text-[11px] uppercase tracking-[0.3em] text-[#D4AF37]">[ Стрижка «Грань» · {total} минут ]</p>
+            <p className="f-mono text-[11px] uppercase tracking-[0.3em] text-[#D4AF37]">[ Стрижка «Onix» · {total} минут ]</p>
             <h2 aria-label="Ритуал визита" className="f-display mt-5 text-[clamp(3.2rem,8.5vw,7rem)] font-semibold leading-[0.9]">
               <SplitLetters text="Ритуал" trigger="view" />{" "}
               <span className="italic text-[#D4AF37]">
@@ -1982,7 +1984,7 @@ function MiniMap() {
       <circle cx="214" cy="86" r="5" fill="#D4AF37" />
       <circle cx="214" cy="86" r="1.8" fill="#0B0B0B" />
       <text x="226" y="74" className="f-mono" fontSize="8" letterSpacing="1.4" fill="#D4AF37">
-        ГРАНЬ · 21
+        ONIX · 21
       </text>
     </svg>
   );
@@ -2298,7 +2300,7 @@ function Footer({ onNav }) {
     <footer className="relative overflow-hidden border-t border-white/10 pt-20">
       <Container className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="f-display text-3xl font-semibold tracking-[0.16em]">ГРАНЬ</p>
+          <p className="f-display text-3xl font-semibold tracking-[0.12em]">Onix Barbershop</p>
           <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-white/50">
             Мужской барбершоп у Патриарших прудов. Стрижки, бритьё и уход за бородой по записи.
           </p>
@@ -2317,11 +2319,11 @@ function Footer({ onNav }) {
           <p className="text-[15px] text-white/80">{TELEGRAM}</p>
         </div>
       </Container>
-      <div className="f-display mt-16 select-none text-center text-[25vw] font-bold leading-[0.78] tracking-[-0.02em]" aria-hidden="true">
-        <SplitLetters text="ГРАНЬ" trigger="view" stagger={0.07} letterClassName="gold-text" />
+      <div className="f-display mt-16 select-none text-center text-[30vw] font-bold leading-[0.78] tracking-[-0.02em]" aria-hidden="true">
+        <SplitLetters text="ONIX" trigger="view" stagger={0.07} letterClassName="gold-text" />
       </div>
       <Container className="f-mono flex flex-col gap-4 border-t border-white/10 py-6 text-[10px] uppercase tracking-[0.2em] text-white/40 sm:flex-row sm:items-center sm:justify-between">
-        <span>© 2026 Барбершоп «Грань»</span>
+        <span>© 2026 Onix Barbershop</span>
         <span>Сделано с точностью до 0,5 мм</span>
         <motion.button
           type="button"

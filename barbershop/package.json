@@ -1,8 +1,8 @@
 {
-  "name": "gran-barbershop-landing",
+  "name": "onix-barbershop-landing",
   "private": true,
   "version": "1.0.0",
-  "description": "Лендинг премиального барбершопа «Грань»: React, Tailwind CSS, Framer Motion, GSAP ScrollTrigger, Lucide React.",
+  "description": "Лендинг премиального барбершопа Onix Barbershop: React, Tailwind CSS, Framer Motion, GSAP ScrollTrigger, Lucide React.",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs"
