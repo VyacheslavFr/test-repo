@@ -53,8 +53,8 @@ const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : use
 
 /* ───────────────────────────── Данные ───────────────────────────── */
 
-const ADDRESS = "Москва, Малая Бронная, 21";
-const PHONE = "+7 (495) 000-24-24";
+const ADDRESS = "Гомель, ул. Румянцевская, 21";
+const PHONE = "+375 (29) 000-24-24";
 const TELEGRAM = "@onix_barber";
 
 const SERVICES = [
@@ -63,7 +63,7 @@ const SERVICES = [
     icon: Scissors,
     cat: "Стрижка",
     title: "Стрижка «Onix»",
-    price: 4500,
+    price: 55,
     time: 60,
     tool: "Ножницы и машинка",
     badge: "Фирменная",
@@ -75,7 +75,7 @@ const SERVICES = [
     icon: Crown,
     cat: "Бритьё",
     title: "Королевское бритьё",
-    price: 3800,
+    price: 45,
     time: 45,
     tool: "Опасная бритва",
     desc: "Три горячих полотенца, бритьё опасной бритвой в два прохода, холодный компресс.",
@@ -86,7 +86,7 @@ const SERVICES = [
     icon: Layers,
     cat: "Стрижка",
     title: "Скин-фейд",
-    price: 4200,
+    price: 50,
     time: 60,
     tool: "Насадки 0,5–3 мм",
     desc: "Растушёвка от кожи без видимых ступеней. Контур и финиш опасной бритвой.",
@@ -97,7 +97,7 @@ const SERVICES = [
     icon: PenTool,
     cat: "Борода",
     title: "Борода и контур",
-    price: 2900,
+    price: 30,
     time: 40,
     tool: "Триммер и бритва",
     desc: "Форма под овал лица, чёткий контур опасной бритвой, масло и бальзам для кожи.",
@@ -108,7 +108,7 @@ const SERVICES = [
     icon: Droplets,
     cat: "Уход",
     title: "Камуфляж седины",
-    price: 2500,
+    price: 30,
     time: 30,
     tool: "Тонирование",
     desc: "Тонирование, которое скрывает до 70 % седины и выглядит естественно при любом свете.",
@@ -119,7 +119,7 @@ const SERVICES = [
     icon: Gem,
     cat: "Комплекс",
     title: "Полный ритуал",
-    price: 8900,
+    price: 110,
     time: 120,
     tool: "Стрижка + бритьё",
     desc: "Стрижка «Onix», королевское бритьё и уход за кожей лица за один визит.",
@@ -204,7 +204,7 @@ const NAV = [
 
 /* ──────────────────────────── Утилиты ──────────────────────────── */
 
-const fmtPrice = (n) => `${n.toLocaleString("ru-RU")} ₽`;
+const fmtPrice = (n) => `${n.toLocaleString("ru-RU")} BYN`;
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const wrap = (min, max, v) => {
   const range = max - min;
@@ -217,17 +217,19 @@ const mulberry32 = (a) => () => {
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
+/** Маска белорусского номера: +375 (29) 123-45-67. */
 const formatPhone = (raw) => {
   let d = raw.replace(/\D/g, "");
   if (!d) return "";
-  if (d[0] === "8") d = `7${d.slice(1)}`;
-  if (d[0] !== "7") d = `7${d}`;
-  const p = d.slice(1, 11);
-  let out = "+7";
-  if (p.length) out += ` (${p.slice(0, 3)}`;
-  if (p.length > 3) out += `) ${p.slice(3, 6)}`;
-  if (p.length > 6) out += `-${p.slice(6, 8)}`;
-  if (p.length > 8) out += `-${p.slice(8, 10)}`;
+  if ("375".startsWith(d)) return `+${d}`;
+  if (d.startsWith("80") && d.length >= 11) d = `375${d.slice(2)}`;
+  else if (!d.startsWith("375")) d = `375${d}`;
+  const p = d.slice(3, 12);
+  let out = "+375";
+  if (p.length) out += ` (${p.slice(0, 2)}`;
+  if (p.length > 2) out += `) ${p.slice(2, 5)}`;
+  if (p.length > 5) out += `-${p.slice(5, 7)}`;
+  if (p.length > 7) out += `-${p.slice(7, 9)}`;
   return out;
 };
 const isBusy = (dayIdx, slotIdx, masterKey) => {
@@ -628,7 +630,7 @@ function LoaderFace({ count, cut }) {
   return (
     <div className="relative h-full w-full">
       <div className="f-mono absolute left-4 right-4 top-6 flex justify-between text-[10px] uppercase tracking-[0.3em] text-white/45 sm:left-10 sm:right-10 sm:top-8">
-        <span>Onix Barbershop · Москва</span>
+        <span>Onix Barbershop · Гомель</span>
         <span>Est. 2014</span>
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
@@ -823,7 +825,7 @@ function Nav({ ready, onNav }) {
             >
               <span className="f-display text-2xl font-bold tracking-[0.18em] text-[#F7F5EF]">ONIX</span>
               <span className="f-mono text-[9px] uppercase tracking-[0.3em] text-[#D4AF37]">
-                Barbershop<span className="hidden sm:inline"> · MSK</span>
+                Barbershop<span className="hidden sm:inline"> · Gomel</span>
               </span>
             </a>
             <ul className="hidden items-center gap-9 lg:flex">
@@ -1229,7 +1231,7 @@ function Hero({ ready, onNav }) {
       <Container className="grid items-center gap-16 lg:grid-cols-12 lg:gap-8">
         <motion.div className="lg:col-span-7" style={{ y: copyY }}>
           <motion.div {...show(0.1)} className="f-mono flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] uppercase tracking-[0.28em] text-white/55">
-            <span className="text-[#D4AF37]">[ Москва · Малая Бронная, 21 ]</span>
+            <span className="text-[#D4AF37]">[ Гомель · Румянцевская, 21 ]</span>
             <span className="h-px w-10 bg-white/25" />
             <span>с 2014 года</span>
           </motion.div>
@@ -1295,7 +1297,7 @@ function Hero({ ready, onNav }) {
         Листайте
       </motion.button>
       <div className="f-mono pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 text-[10px] uppercase tracking-[0.3em] text-white/30 [writing-mode:vertical-rl] xl:block">
-        55°45′ N · 37°35′ E
+        52°25′ N · 31°00′ E
       </div>
     </section>
   );
@@ -1947,9 +1949,13 @@ function Field({ step, label, error, children }) {
 
 function MiniMap() {
   return (
-    <svg viewBox="0 0 320 190" className="h-auto w-full" role="img" aria-label="Схема: барбершоп у Патриарших прудов">
+    <svg viewBox="0 0 320 190" className="h-auto w-full" role="img" aria-label="Схема: Onix Barbershop рядом с дворцовым парком и рекой Сож">
       <rect width="320" height="190" fill="#0F0F0F" />
       <rect width="320" height="190" fill="url(#gr-grid)" />
+      <path d="M 300 -10 C 276 50 322 100 292 150 S 276 200 294 210" fill="none" stroke="#D4AF37" strokeOpacity="0.1" strokeWidth="22" />
+      <text x="304" y="128" className="f-mono" fontSize="7" letterSpacing="1.4" fill="#D4AF37" fillOpacity="0.55" transform="rotate(-80 304 128)">
+        Р. СОЖ
+      </text>
       <g stroke="#F7F5EF" strokeOpacity="0.14" strokeWidth="6" fill="none" strokeLinecap="square">
         <path d="M -10 40 L 330 110" />
         <path d="M 60 -10 L 110 200" />
@@ -1960,16 +1966,16 @@ function MiniMap() {
         <path d="M 150 -10 L 160 200" />
       </g>
       <rect x="118" y="100" width="70" height="44" fill="#D4AF37" fillOpacity="0.07" stroke="#D4AF37" strokeOpacity="0.35" />
-      <g stroke="#D4AF37" strokeOpacity="0.25" strokeWidth="0.6">
-        <path d="M 124 112 q 6 -3 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" />
-        <path d="M 124 122 q 6 -3 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" />
-        <path d="M 124 132 q 6 -3 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" />
+      <g fill="#D4AF37" fillOpacity="0.3">
+        {Array.from({ length: 18 }, (_, i) => (
+          <circle key={i} cx={127 + (i % 6) * 10.4 + (Math.floor(i / 6) % 2) * 5} cy={110 + Math.floor(i / 6) * 11} r="2.2" />
+        ))}
       </g>
       <text x="153" y="158" textAnchor="middle" className="f-mono" fontSize="7" letterSpacing="1.4" fill="#F7F5EF" fillOpacity="0.5">
-        ПАТРИАРШИЕ ПРУДЫ
+        ДВОРЦОВЫЙ ПАРК
       </text>
       <text x="22" y="36" className="f-mono" fontSize="7" letterSpacing="1.4" fill="#F7F5EF" fillOpacity="0.45" transform="rotate(11.6 22 36)">
-        МАЛАЯ БРОННАЯ
+        РУМЯНЦЕВСКАЯ
       </text>
       <motion.circle
         cx="214"
@@ -2040,7 +2046,7 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
     const next = {};
     if (!time) next.time = "Выберите свободное время";
     if (name.trim().length < 2) next.name = "Укажите имя";
-    if (phone.replace(/\D/g, "").length !== 11) next.phone = "Введите номер полностью: +7 и 10 цифр";
+    if (phone.replace(/\D/g, "").length !== 12) next.phone = "Введите номер полностью: +375 и 9 цифр";
     setErrors(next);
     if (Object.keys(next).length) return;
     setTicket({
@@ -2076,7 +2082,7 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
           <Reveal delay={0.15} y={50} className="mt-10">
             <ContactRow icon={MapPin} label="Адрес">
               {ADDRESS}
-              <span className="f-mono mt-1 block text-[11px] uppercase tracking-[0.16em] text-white/45">м. Пушкинская · 8 минут пешком</span>
+              <span className="f-mono mt-1 block text-[11px] uppercase tracking-[0.16em] text-white/45">5 минут пешком до дворцового парка</span>
             </ContactRow>
             <ContactRow icon={Clock} label="Часы работы">
               Ежедневно, 10:00–22:00
@@ -2186,7 +2192,7 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
                       autoComplete="tel"
                       value={phone}
                       onChange={(e) => setPhone(formatPhone(e.target.value))}
-                      placeholder="+7 (___) ___-__-__"
+                      placeholder="+375 (__) ___-__-__"
                       aria-label="Телефон"
                       className="w-full border-b border-white/20 bg-transparent py-3 text-[17px] tabular-nums text-[#F7F5EF] outline-none focus:border-[#D4AF37]"
                     />
@@ -2302,7 +2308,7 @@ function Footer({ onNav }) {
         <div>
           <p className="f-display text-3xl font-semibold tracking-[0.12em]">Onix Barbershop</p>
           <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-white/50">
-            Мужской барбершоп у Патриарших прудов. Стрижки, бритьё и уход за бородой по записи.
+            Мужской барбершоп в центре Гомеля, рядом с дворцовым парком. Стрижки, бритьё и уход за бородой по записи.
           </p>
         </div>
         <div>
