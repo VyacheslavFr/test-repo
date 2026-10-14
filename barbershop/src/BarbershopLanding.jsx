@@ -301,7 +301,7 @@ function GlobalStyles() {
   return <style>{GLOBAL_CSS}</style>;
 }
 
-/** Общие SVG-градиенты для чертежа бритвы. */
+/** Общие SVG-градиенты и узоры: сталь, плитка, свет, тени. */
 function SvgDefs() {
   return (
     <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
@@ -314,24 +314,40 @@ function SvgDefs() {
           <stop offset="0.9" stopColor="#B9B7B0" />
           <stop offset="1" stopColor="#FFFFFF" />
         </linearGradient>
-        <linearGradient id="gr-horn" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#7A5539" />
-          <stop offset="0.35" stopColor="#5A3D28" />
-          <stop offset="0.75" stopColor="#3F2B1D" />
-          <stop offset="1" stopColor="#6B4A32" />
-        </linearGradient>
         <linearGradient id="gr-nickel" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#8D9590" />
           <stop offset="0.45" stopColor="#EEF1EF" />
           <stop offset="1" stopColor="#A7AFAA" />
         </linearGradient>
-        <radialGradient id="gr-glow">
-          <stop offset="0" stopColor="#2E5E4E" stopOpacity="0.1" />
-          <stop offset="1" stopColor="#2E5E4E" stopOpacity="0" />
+        <linearGradient id="gr-dryer" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#5C9A82" />
+          <stop offset="0.35" stopColor="#2E5E4E" />
+          <stop offset="1" stopColor="#1F4237" />
+        </linearGradient>
+        <linearGradient id="gr-nozzle" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#56605B" />
+          <stop offset="0.5" stopColor="#1D2622" />
+          <stop offset="1" stopColor="#323C37" />
+        </linearGradient>
+        <linearGradient id="gr-tortoise" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#B27A4E" />
+          <stop offset="0.4" stopColor="#8A5636" />
+          <stop offset="0.7" stopColor="#A86F45" />
+          <stop offset="1" stopColor="#6A3F25" />
+        </linearGradient>
+        <radialGradient id="gr-light" cx="0.12" cy="0.02" r="1.1">
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.85" />
+          <stop offset="0.5" stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="1" stopColor="#1D2622" stopOpacity="0.1" />
         </radialGradient>
-        <pattern id="gr-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1D2622" strokeOpacity="0.07" strokeWidth="0.5" />
+        <pattern id="gr-tiles" width="44" height="44" patternUnits="userSpaceOnUse">
+          <rect width="44" height="44" fill="#F4F5F1" />
+          <path d="M 0 0.5 H 44 M 0 22.5 H 44 M 0.5 0 V 22 M 22.5 22 V 44" fill="none" stroke="#D3D8D2" strokeWidth="1" />
+          <path d="M 0 1.6 H 44 M 0 23.6 H 44" fill="none" stroke="#FFFFFF" strokeOpacity="0.9" strokeWidth="1" />
         </pattern>
+        <filter id="gr-shadow" x="-30%" y="-30%" width="160%" height="170%">
+          <feDropShadow dx="3" dy="8" stdDeviation="5" floodColor="#1D2622" floodOpacity="0.22" />
+        </filter>
       </defs>
     </svg>
   );
@@ -668,7 +684,7 @@ function LoaderFace({ count, cut }) {
       <div className="absolute bottom-6 left-4 right-4 flex items-end justify-between gap-6 sm:bottom-8 sm:left-10 sm:right-10">
         <span className="f-display text-6xl font-bold leading-none tabular-nums text-[#1D2622]/90 sm:text-8xl">{String(count).padStart(3, "0")}</span>
         <div className="w-32 sm:w-52">
-          <div className="f-label mb-2 text-right text-[11px] uppercase tracking-[0.25em] text-[#1D2622]/55">Правка лезвия</div>
+          <div className="f-label mb-2 text-right text-[11px] uppercase tracking-[0.25em] text-[#1D2622]/55">Готовим кресло</div>
           <div className="h-px bg-[#1D2622]/15">
             <div className="h-px bg-[#2E5E4E]" style={{ width: `${count}%` }} />
           </div>
@@ -936,161 +952,180 @@ function Nav({ ready, onNav }) {
   );
 }
 
-/* ─────────────────────── Чертёж опасной бритвы ─────────────────── */
+/* ─────────────── Рабочее место в герое: фен, гребень и ножницы ─────────────── */
 
-const RZ = { cx: 196, cy: 240, a: -40, s: 0.6 };
-const RZ_RAD = (RZ.a * Math.PI) / 180;
-const rzPoint = (x, y) => [RZ.cx + RZ.s * (x * Math.cos(RZ_RAD) - y * Math.sin(RZ_RAD)), RZ.cy + RZ.s * (x * Math.sin(RZ_RAD) + y * Math.cos(RZ_RAD))];
-const DIAL_TICKS = Array.from({ length: 120 }, (_, i) => {
-  const t = (i * 3 * Math.PI) / 180;
-  const long = i % 5 === 0;
-  const r1 = 172;
-  const r2 = long ? 158 : 165;
-  return { x1: RZ.cx + r1 * Math.cos(t), y1: RZ.cy + r1 * Math.sin(t), x2: RZ.cx + r2 * Math.cos(t), y2: RZ.cy + r2 * Math.sin(t), long };
+// Прядь волос свисает из-за верхнего края кадра; фен её обдувает, гребень расчёсывает, ножницы подравнивают.
+const HAIR = { y0: -12, full: 342, cutY: 300, n: 16, x0: 162, gap: 6 };
+const HAIR_TONES = ["#3A2B22", "#6B5140", "#2E231C", "#5B4434"];
+const AIR_LINES = [
+  "M 146 166 C 190 158 230 172 290 162 S 360 170 410 160",
+  "M 146 174 C 196 168 240 180 300 172 S 370 178 410 172",
+  "M 146 182 C 186 178 236 188 296 182 S 366 186 410 182",
+  "M 146 190 C 192 190 238 198 300 192 S 368 196 410 194",
+  "M 146 198 C 188 202 232 208 292 204 S 360 208 410 208",
+];
+const FLOOR_CLIPPINGS = Array.from({ length: 16 }, (_, i) => {
+  const rand = mulberry32(i + 101);
+  const x = 140 + rand() * 150;
+  const y = 446 + rand() * 40;
+  const a = (rand() - 0.5) * 2;
+  const l = 5 + rand() * 8;
+  return {
+    d: `M ${x.toFixed(1)} ${y.toFixed(1)} q ${(l / 2).toFixed(1)} ${(a * 4).toFixed(1)} ${l.toFixed(1)} ${(a * 2).toFixed(1)}`,
+    tone: HAIR_TONES[i % 4],
+  };
 });
-const BLADE = "M -4 -9 L 46 -11 L 290 -13 Q 302 -13 302 -1 L 302 30 Q 302 41 290 41 L 82 40 C 66 40 58 32 54 22 C 51 14 48 10 40 9 L -4 9 Z";
-const HANDLE = "M 8 -15 C -60 -20 -200 -20 -272 -12 C -294 -10 -294 10 -272 12 C -200 20 -60 20 8 15 C 18 12 18 -12 8 -15 Z";
-const [BLADE_AX, BLADE_AY] = rzPoint(230, 38);
-const [HANDLE_AX, HANDLE_AY] = rzPoint(-150, 10);
+const COMB_TEETH = Array.from({ length: 26 }, (_, i) => 151 + i * 4.6);
 
-function RazorArt({ ready }) {
-  const draw = (d) => ({
-    initial: { pathLength: 0, opacity: 0 },
-    animate: ready ? { pathLength: 1, opacity: 1 } : undefined,
-    transition: { pathLength: { duration: 1.9, ease: [0.65, 0, 0.35, 1], delay: d }, opacity: { duration: 0.01, delay: d } },
-  });
-  const fade = (d) => ({ initial: { opacity: 0 }, animate: ready ? { opacity: 1 } : undefined, transition: { duration: 1.1, delay: d } });
+const ringPath = (cx, cy, r1, r2) =>
+  `M ${cx - r1} ${cy} a ${r1} ${r1} 0 1 0 ${r1 * 2} 0 a ${r1} ${r1} 0 1 0 ${-r1 * 2} 0 Z ` +
+  `M ${cx - r2} ${cy} a ${r2} ${r2} 0 1 0 ${r2 * 2} 0 a ${r2} ${r2} 0 1 0 ${-r2 * 2} 0 Z`;
 
-  return (
-    <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden="true">
-      <rect width="400" height="500" fill="#F4F5F1" />
-      <rect width="400" height="500" fill="url(#gr-grid)" />
-      <circle cx={RZ.cx} cy={RZ.cy} r="230" fill="url(#gr-glow)" />
-
-      <motion.g {...fade(0.5)}>
-        <motion.g animate={{ rotate: 360 }} transition={{ duration: 140, repeat: Infinity, ease: "linear" }}>
-          {DIAL_TICKS.map((t, i) => (
-            <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke="#1D2622" strokeOpacity={t.long ? 0.28 : 0.12} strokeWidth={t.long ? 0.9 : 0.6} />
-          ))}
-        </motion.g>
-        <circle cx={RZ.cx} cy={RZ.cy} r="148" fill="none" stroke="#2E5E4E" strokeOpacity="0.16" strokeDasharray="1 5" />
-        <circle cx={RZ.cx} cy={RZ.cy} r="188" fill="none" stroke="#1D2622" strokeOpacity="0.07" />
-        <line x1="16" y1={RZ.cy} x2="384" y2={RZ.cy} stroke="#1D2622" strokeOpacity="0.07" strokeDasharray="6 4" />
-        <line x1={RZ.cx} y1="36" x2={RZ.cx} y2="440" stroke="#1D2622" strokeOpacity="0.07" strokeDasharray="6 4" />
-      </motion.g>
-
-      <g transform={`translate(${RZ.cx} ${RZ.cy}) rotate(${RZ.a}) scale(${RZ.s})`}>
-        {/* полотно */}
-        <motion.path d={BLADE} fill="url(#gr-steel)" {...fade(1.6)} />
-        <motion.path d={BLADE} fill="none" stroke="#1D2622" strokeWidth="1.1" {...draw(0.8)} />
-        <motion.path d="M 84 36.5 L 290 37 Q 298 37 298.5 31" fill="none" stroke="#FFFFFF" strokeWidth="1.8" {...draw(1.4)} />
-        <motion.path d="M 64 5 Q 180 2 298 3" fill="none" stroke="#1D2622" strokeOpacity="0.35" strokeWidth="1" {...fade(1.8)} />
-        {[24, 28, 32, 36, 40].map((x) => (
-          <motion.line key={x} x1={x} y1="4" x2={x} y2="9" stroke="#1D2622" strokeOpacity="0.55" strokeWidth="1" {...fade(1.8)} />
-        ))}
-        <motion.text x="118" y="27" className="f-label" fontSize="11" letterSpacing="3" fill="#1D2622" fillOpacity="0.45" {...fade(2)}>
-          ONIX · 5/8
-        </motion.text>
-        {/* рукоять */}
-        <motion.path d={HANDLE} fill="url(#gr-horn)" {...fade(1.6)} />
-        <motion.path d={HANDLE} fill="none" stroke="#1D2622" strokeWidth="1.1" {...draw(0.9)} />
-        <motion.path d="M -250 0 L -26 0" fill="none" stroke="#D9DEDB" strokeOpacity="0.7" strokeWidth="0.8" strokeDasharray="2 4" {...draw(1.2)} />
-        <motion.path d="M -150 -5 L -144 0 L -150 5 L -156 0 Z" fill="#D9DEDB" {...fade(2)} />
-        <motion.circle cx="-262" cy="0" r="4" fill="url(#gr-nickel)" {...fade(1.9)} />
-        <motion.circle cx="0" cy="0" r="6.5" fill="url(#gr-nickel)" stroke="#1D2622" strokeWidth="1" {...fade(1.9)} />
-        <motion.circle cx="0" cy="0" r="2" fill="#1D2622" {...fade(1.9)} />
-        {/* размеры */}
-        <motion.g {...fade(2.2)} stroke="#1D2622" strokeOpacity="0.5" strokeWidth="0.9" fill="none">
-          <line x1="46" y1="-34" x2="302" y2="-34" />
-          <line x1="46" y1="-42" x2="46" y2="-18" />
-          <line x1="302" y1="-42" x2="302" y2="-20" />
-          <line x1="324" y1="-13" x2="324" y2="41" />
-          <line x1="308" y1="-13" x2="332" y2="-13" />
-          <line x1="308" y1="41" x2="332" y2="41" />
-          <path d="M 46 -34 l 9 -3 v 6 z M 302 -34 l -9 -3 v 6 z" fill="#1D2622" fillOpacity="0.5" stroke="none" />
-        </motion.g>
-        <motion.text {...fade(2.3)} x="174" y="-42" textAnchor="middle" className="f-label" fontSize="13" letterSpacing="2" fill="#1D2622" fillOpacity="0.75">
-          76 мм
-        </motion.text>
-        <g transform="rotate(90 342 14)">
-          <motion.text {...fade(2.3)} x="342" y="14" textAnchor="middle" className="f-label" fontSize="13" letterSpacing="1" fill="#2E5E4E">
-            5/8″
-          </motion.text>
-        </g>
-      </g>
-
-      {/* выноски */}
-      <motion.g {...fade(2.4)} fill="none" stroke="#2E5E4E" strokeOpacity="0.7" strokeWidth="0.8">
-        <polyline points={`${BLADE_AX},${BLADE_AY} ${BLADE_AX + 22},${BLADE_AY + 44} 388,${BLADE_AY + 44}`} />
-        <polyline points={`${HANDLE_AX},${HANDLE_AY} ${HANDLE_AX + 28},${HANDLE_AY + 78} 12,${HANDLE_AY + 78}`} />
-        <circle cx={BLADE_AX} cy={BLADE_AY} r="2.4" fill="#2E5E4E" stroke="none" />
-        <circle cx={HANDLE_AX} cy={HANDLE_AY} r="2.4" fill="#2E5E4E" stroke="none" />
-      </motion.g>
-      <motion.g {...fade(2.5)} className="f-label" fontSize="8.5" letterSpacing="1.2">
-        <text x="388" y={BLADE_AY + 57} textAnchor="end" fill="#1D2622" fillOpacity="0.8">
-          ПОЛОТНО
-        </text>
-        <text x="388" y={BLADE_AY + 69} textAnchor="end" fill="#2E5E4E">
-          СТАЛЬ · 60 HRC
-        </text>
-        <text x="12" y={HANDLE_AY + 91} fill="#1D2622" fillOpacity="0.8">
-          РУКОЯТЬ
-        </text>
-        <text x="12" y={HANDLE_AY + 103} fill="#2E5E4E">
-          РОГ БУЙВОЛА
-        </text>
-      </motion.g>
-
-      {/* сечение лезвия */}
-      <g transform="translate(290 290)">
-        <motion.g {...fade(2.6)}>
-          <rect width="96" height="94" fill="#F7F7F3" fillOpacity="0.92" stroke="#1D2622" strokeOpacity="0.18" />
-          <text x="8" y="14" className="f-label" fontSize="7.5" letterSpacing="1" fill="#1D2622" fillOpacity="0.6">
-            СЕЧЕНИЕ А–А
-          </text>
-          <path d="M 40 22 L 56 22 L 56 30 Q 49.5 52 48.6 82 L 47.4 82 Q 46.5 52 40 30 Z" fill="url(#gr-steel)" stroke="#1D2622" strokeWidth="0.6" />
-          <line x1="48" y1="82" x2="44.4" y2="58" stroke="#2E5E4E" strokeWidth="0.6" />
-          <line x1="48" y1="82" x2="51.6" y2="58" stroke="#2E5E4E" strokeWidth="0.6" />
-          <path d="M 45.63 66.18 A 16 16 0 0 1 50.37 66.18" fill="none" stroke="#2E5E4E" strokeWidth="0.8" />
-          <text x="60" y="70" className="f-label" fontSize="9" fill="#2E5E4E">
-            17°
-          </text>
-        </motion.g>
-      </g>
-    </svg>
-  );
+function smoothPath(pts) {
+  if (!pts || pts.length < 2) return "";
+  let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i = 1; i < pts.length - 1; i += 1) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2;
+    const my = (pts[i][1] + pts[i + 1][1]) / 2;
+    d += ` Q ${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+  }
+  const last = pts[pts.length - 1];
+  return `${d} L ${last[0].toFixed(1)} ${last[1].toFixed(1)}`;
 }
 
-const STRIP_DRIFT = [0, -90, 50, -140];
-
-function RazorStrip({ i, n, ready, progress }) {
-  const y = useTransform(progress, [0, 1], [0, STRIP_DRIFT[i]]);
-  const l = (i / n) * 100;
-  const r = ((i + 1) / n) * 100;
-  return (
-    <motion.div
-      className="absolute inset-0"
-      style={{ y, clipPath: `polygon(calc(${l}% - 1px) 0, calc(${r}% + 1px) 0, calc(${r}% + 1px) 100%, calc(${l}% - 1px) 100%)` }}
-    >
-      <motion.div
-        className="absolute inset-0"
-        initial={{ y: i % 2 ? "-102%" : "102%" }}
-        animate={ready ? { y: "0%" } : undefined}
-        transition={{ type: "spring", stiffness: 48, damping: 15, mass: 1.1, delay: 0.15 + i * 0.1 }}
-      >
-        <RazorArt ready={ready} />
-      </motion.div>
-    </motion.div>
-  );
+/** Точки одного волоса: волна гасится там, где уже прошёл гребень, кончики сносит потоком фена. */
+function strandPoints(i, t, st, fromY, toY) {
+  const x = HAIR.x0 + i * HAIR.gap;
+  const phase = i * 1.7;
+  const steps = Math.max(2, Math.ceil((toY - fromY) / 9));
+  const pts = [];
+  for (let s = 0; s <= steps; s += 1) {
+    const y = fromY + ((toY - fromY) * s) / steps;
+    const k = clamp((y - HAIR.y0) / HAIR.full, 0, 1);
+    const combed = clamp((st.combY + 12 - y) / 44, 0, 1) * (1 - st.relax);
+    const amp = 5.5 * (1 - 0.9 * combed) * Math.min(1, 0.25 + k * 2);
+    const wave = amp * Math.sin(y * 0.048 + phase + t * 0.6);
+    const sway = (st.air + st.boost) * Math.pow(k, 1.5) * (13 + 5 * Math.sin(t * 7 + i * 1.3));
+    pts.push([x + wave + sway, y]);
+  }
+  return pts;
 }
 
-/** Правая половина героя: «разрезанное» изображение, которое расходится полосами при скролле. */
-function RazorPanel({ ready, progress }) {
+/** Правая половина героя: живая сцена с инструментами, слои двигаются с разной глубиной. */
+function ToolsPanel({ ready, progress }) {
   const ref = useRef(null);
+  const reduced = useReducedMotion();
+  const visible = useInView(ref, { amount: 0 });
+  const visibleRef = useRef(false);
+  visibleRef.current = visible;
+
+  const st = useRef({ combY: -60, combOpacity: 0, len: HAIR.full, relax: 0, fall: 1, open: 26, air: 1, boost: 0 }).current;
+  const clock = useRef(0);
+  const tlRef = useRef(null);
+  const strandRefs = useRef([]);
+  const clipRefs = useRef([]);
+  const airRefs = useRef([]);
+  const combRef = useRef(null);
+  const dryerRef = useRef(null);
+  const pieceA = useRef(null);
+  const pieceB = useRef(null);
+
+  // наклон панели и глубина слоёв за курсором
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
   const srx = useSpring(rx, { stiffness: 100, damping: 15 });
   const sry = useSpring(ry, { stiffness: 100, damping: 15 });
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const smx = useSpring(mx, { stiffness: 60, damping: 16 });
+  const smy = useSpring(my, { stiffness: 60, damping: 16 });
+  const dryerX = useTransform([progress, smx], ([p, m]) => p * -30 + m * -16);
+  const dryerY = useTransform([progress, smy], ([p, m]) => p * -10 + m * -10);
+  const hairX = useTransform(smx, (m) => m * 6);
+  const hairY = useTransform([progress, smy], ([p, m]) => p * -14 + m * 4);
+  const scissorsX = useTransform([progress, smx], ([p, m]) => p * 24 + m * 20);
+  const scissorsY = useTransform([progress, smy], ([p, m]) => p * -10 + m * 14);
+
+  const render = useCallback(() => {
+    const t = clock.current;
+    const end = HAIR.y0 + st.len;
+    strandRefs.current.forEach((el, i) => el?.setAttribute("d", smoothPath(strandPoints(i, t, st, HAIR.y0, end))));
+    const fall = st.fall;
+    clipRefs.current.forEach((el, i) => {
+      if (!el) return;
+      const dx = fall * (8 + (i - HAIR.n / 2) * 0.8);
+      const dy = fall * fall * 150;
+      el.setAttribute(
+        "transform",
+        `translate(${dx.toFixed(1)} ${dy.toFixed(1)}) rotate(${(fall * (i % 2 ? 11 : -8)).toFixed(1)} ${HAIR.x0 + i * HAIR.gap} ${HAIR.cutY})`,
+      );
+      el.setAttribute("opacity", (1 - fall).toFixed(2));
+    });
+    combRef.current?.setAttribute("transform", `translate(0 ${st.combY.toFixed(1)})`);
+    combRef.current?.setAttribute("opacity", st.combOpacity.toFixed(2));
+    const power = st.air + st.boost;
+    airRefs.current.forEach((el, i) => {
+      if (!el) return;
+      el.setAttribute("stroke-dashoffset", (-(t * 70 * power) - i * 9).toFixed(1));
+      el.setAttribute("opacity", (0.16 + 0.1 * st.boost).toFixed(2));
+    });
+    dryerRef.current?.setAttribute("transform", `translate(0 ${(Math.sin(t * 55) * 0.35 * power).toFixed(2)})`);
+    pieceA.current?.setAttribute("transform", `rotate(${(st.open / 2).toFixed(2)})`);
+    pieceB.current?.setAttribute("transform", `rotate(${(-st.open / 2).toFixed(2)})`);
+  }, [st]);
+
+  useAnimationFrame((time) => {
+    if (!visibleRef.current || reduced) return;
+    clock.current = time / 1000;
+    render();
+  });
+
+  // статичный кадр без анимации
+  useEffect(() => {
+    if (!reduced) return;
+    Object.assign(st, { combY: 150, combOpacity: 1, len: HAIR.full, relax: 0, fall: 1, open: 20, boost: 0 });
+    render();
+  }, [reduced, render, st]);
+
+  // цикл: гребень проходит прядь → ножницы срезают кончики → волосы снова отрастают
+  useIsoLayoutEffect(() => {
+    if (!ready || reduced) return undefined;
+    const snip = () => {
+      const end = HAIR.y0 + st.len;
+      clipRefs.current.forEach((el, i) => el?.setAttribute("d", smoothPath(strandPoints(i, clock.current, st, HAIR.cutY, end))));
+      st.len = HAIR.cutY - HAIR.y0;
+    };
+    const tl = gsap.timeline({ repeat: -1, delay: 1.4 });
+    tl.set(st, { combY: -60, combOpacity: 0, len: HAIR.full, relax: 0, fall: 1, open: 26 })
+      .to(st, { combOpacity: 1, duration: 0.35 }, 0.4)
+      .to(st, { combY: 380, duration: 2.6, ease: "power1.inOut" }, 0.4)
+      .to(st, { combOpacity: 0, duration: 0.35 }, 2.65)
+      .to(st, { open: 0, duration: 0.16, ease: "power2.in", onComplete: snip }, 3.1)
+      .to(st, { open: 26, duration: 0.32, ease: "power2.out" }, 3.26)
+      .fromTo(st, { fall: 0 }, { fall: 1, duration: 1.2, ease: "power1.in", immediateRender: false }, 3.26)
+      .to(st, { open: 6, duration: 0.14, ease: "power2.in" }, 3.75)
+      .to(st, { open: 26, duration: 0.3, ease: "power2.out" }, 3.89)
+      .to(st, { relax: 1, len: HAIR.full, duration: 1.6, ease: "sine.inOut" }, 4.6)
+      .to({}, { duration: 0.6 });
+    tlRef.current = tl;
+    return () => {
+      tl.kill();
+      tlRef.current = null;
+    };
+  }, [ready, reduced, st]);
+
+  useEffect(() => {
+    const tl = tlRef.current;
+    if (!tl) return;
+    if (visible) tl.resume();
+    else tl.pause();
+  }, [visible]);
+
+  const enter = (d, from) => ({
+    initial: { opacity: 0, ...from },
+    animate: ready ? { opacity: 1, x: 0, y: 0 } : undefined,
+    transition: { type: "spring", stiffness: 55, damping: 14, delay: d },
+  });
   const lateIn = (d) => ({
     initial: { opacity: 0, y: 16 },
     animate: ready ? { opacity: 1, y: 0 } : undefined,
@@ -1103,74 +1138,190 @@ function RazorPanel({ ready, progress }) {
       onPointerMove={(e) => {
         if (e.pointerType !== "mouse") return;
         const r = ref.current.getBoundingClientRect();
-        ry.set(((e.clientX - r.left) / r.width - 0.5) * 10);
-        rx.set(-((e.clientY - r.top) / r.height - 0.5) * 8);
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        ry.set(px * 10);
+        rx.set(-py * 8);
+        mx.set(px);
+        my.set(py);
+      }}
+      onPointerEnter={() => {
+        gsap.to(st, { boost: 1.3, duration: 0.6, ease: "power2.out" });
+        if (tlRef.current) gsap.to(tlRef.current, { timeScale: 1.5, duration: 0.6 });
       }}
       onPointerLeave={() => {
         rx.set(0);
         ry.set(0);
+        mx.set(0);
+        my.set(0);
+        gsap.to(st, { boost: 0, duration: 0.9, ease: "power2.out" });
+        if (tlRef.current) gsap.to(tlRef.current, { timeScale: 1, duration: 0.9 });
       }}
       style={{ rotateX: srx, rotateY: sry, transformPerspective: 1400 }}
       className="relative mx-auto aspect-[4/5] w-full max-w-[540px] lg:ml-auto lg:mr-0"
     >
-      <div className="absolute inset-0 overflow-hidden border border-[#1D2622]/15 bg-[#F4F5F1]">
-        {[0, 1, 2, 3].map((i) => (
-          <RazorStrip key={i} i={i} n={4} ready={ready} progress={progress} />
-        ))}
-      </div>
+      <motion.div
+        className="absolute inset-0 overflow-hidden border border-[#1D2622]/15 bg-[#F4F5F1] shadow-[0_40px_80px_-40px_rgba(29,38,34,0.35)]"
+        initial={{ clipPath: "inset(100% 0% 0% 0%)" }}
+        animate={ready ? { clipPath: "inset(0% 0% 0% 0%)" } : undefined}
+        transition={{ duration: 1.1, ease: EASE_CUT, delay: 0.1 }}
+      >
+        <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden="true">
+          <rect width="400" height="500" fill="url(#gr-tiles)" />
+          <rect width="400" height="500" fill="url(#gr-light)" />
+          <rect y="430" width="400" height="70" fill="#E4E7E1" />
+          <line x1="0" y1="430.5" x2="400" y2="430.5" stroke="#1D2622" strokeOpacity="0.12" />
+          <g strokeWidth="1.1" strokeLinecap="round" fill="none">
+            {FLOOR_CLIPPINGS.map((c, i) => (
+              <path key={i} d={c.d} stroke={c.tone} strokeOpacity="0.5" />
+            ))}
+          </g>
 
-      {[
-        "-left-2 -top-2 border-l border-t",
-        "-right-2 -top-2 border-r border-t",
-        "-bottom-2 -left-2 border-b border-l",
-        "-bottom-2 -right-2 border-b border-r",
-      ].map((c) => (
-        <motion.span key={c} aria-hidden="true" className={`absolute h-5 w-5 border-[#2E5E4E] ${c}`} {...lateIn(0.9)} />
-      ))}
+          {/* прядь и гребень */}
+          <motion.g style={{ x: hairX, y: hairY }}>
+            <motion.g {...enter(0.45, { y: -50 })}>
+              <g strokeLinecap="round" fill="none">
+                {Array.from({ length: HAIR.n }, (_, i) => (
+                  <path
+                    key={`clip-${i}`}
+                    ref={(el) => {
+                      clipRefs.current[i] = el;
+                    }}
+                    stroke={HAIR_TONES[i % 4]}
+                    strokeWidth={i % 2 ? 1.2 : 2.1}
+                    opacity="0"
+                  />
+                ))}
+                {Array.from({ length: HAIR.n }, (_, i) => (
+                  <path
+                    key={`hair-${i}`}
+                    ref={(el) => {
+                      strandRefs.current[i] = el;
+                    }}
+                    stroke={HAIR_TONES[i % 4]}
+                    strokeWidth={i % 2 ? 1.2 : 2.1}
+                  />
+                ))}
+              </g>
+              <g ref={combRef} opacity="0" filter="url(#gr-shadow)">
+                <rect x="146" y="-42" width="128" height="22" rx="7" fill="url(#gr-tortoise)" />
+                {COMB_TEETH.map((x) => (
+                  <rect key={x} x={x} y="-22" width="2.4" height="34" rx="1.2" fill="url(#gr-tortoise)" />
+                ))}
+                <ellipse cx="178" cy="-31" rx="9" ry="4" fill="#4A2814" fillOpacity="0.35" />
+                <ellipse cx="226" cy="-29" rx="12" ry="5" fill="#4A2814" fillOpacity="0.3" />
+                <ellipse cx="256" cy="-33" rx="6" ry="3" fill="#4A2814" fillOpacity="0.35" />
+                <rect x="152" y="-39" width="116" height="3" rx="1.5" fill="#FFFFFF" fillOpacity="0.28" />
+              </g>
+            </motion.g>
+          </motion.g>
+
+          {/* фен */}
+          <motion.g style={{ x: dryerX, y: dryerY }}>
+            <motion.g {...enter(0.7, { x: -90 })}>
+              <g strokeLinecap="round" fill="none" stroke="#1D2622" strokeWidth="1.4" strokeDasharray="10 14">
+                {AIR_LINES.map((d, i) => (
+                  <path
+                    key={d}
+                    d={d}
+                    ref={(el) => {
+                      airRefs.current[i] = el;
+                    }}
+                    opacity="0.16"
+                  />
+                ))}
+              </g>
+              <g ref={dryerRef} filter="url(#gr-shadow)">
+                <path d="M 50 304 C 50 342 18 352 12 398 S 32 470 -12 510" fill="none" stroke="#1D2622" strokeWidth="3.2" strokeLinecap="round" />
+                <path d="M 44 206 L 70 206 L 64 296 Q 63 304 55 304 L 47 304 Q 39 304 39 296 Z" fill="url(#gr-dryer)" />
+                <rect x="49" y="222" width="12" height="24" rx="4" fill="#F7F7F3" fillOpacity="0.9" />
+                <circle cx="55" cy="256" r="2.2" fill="#8FE0B6" />
+                <rect x="18" y="150" width="88" height="60" rx="12" fill="url(#gr-dryer)" />
+                <rect x="28" y="156" width="66" height="6" rx="3" fill="#FFFFFF" fillOpacity="0.25" />
+                <ellipse cx="20" cy="180" rx="10" ry="30" fill="#22473B" />
+                <g stroke="#F7F7F3" strokeOpacity="0.35" strokeWidth="1">
+                  <line x1="16" y1="164" x2="16" y2="196" />
+                  <line x1="20" y1="158" x2="20" y2="202" />
+                  <line x1="24" y1="164" x2="24" y2="196" />
+                </g>
+                <path d="M 104 158 L 136 166 Q 141 167 141 172 V 188 Q 141 193 136 194 L 104 202 Z" fill="url(#gr-nozzle)" />
+                <text x="44" y="189" className="f-label" fontSize="9" letterSpacing="2" fill="#F7F7F3" fillOpacity="0.75">
+                  ONIX
+                </text>
+              </g>
+              <text x="18" y="138" className="f-label" fontSize="9" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.55">
+                ФЕН · 2200 ВТ
+              </text>
+            </motion.g>
+          </motion.g>
+
+          {/* ножницы */}
+          <motion.g style={{ x: scissorsX, y: scissorsY }}>
+            <motion.g {...enter(0.95, { x: 90 })}>
+              <g transform={`translate(300 ${HAIR.cutY})`} filter="url(#gr-shadow)">
+                <g ref={pieceB}>
+                  <path
+                    d="M 12 7 C -40 8 -112 5 -154 0 C -112 -1 -40 -3 12 -4 Z"
+                    fill="url(#gr-steel)"
+                    stroke="#1D2622"
+                    strokeOpacity="0.45"
+                    strokeWidth="0.8"
+                  />
+                  <path d="M 8 -3 C 22 -8 30 -14 38 -20" fill="none" stroke="#A3AAA6" strokeWidth="7" strokeLinecap="round" />
+                  <path d={ringPath(50, -27, 14, 9)} fill="#A3AAA6" fillRule="evenodd" stroke="#1D2622" strokeOpacity="0.4" strokeWidth="0.8" />
+                </g>
+                <g ref={pieceA}>
+                  <path
+                    d="M 12 -7 C -40 -8 -112 -5 -154 0 C -112 1 -40 3 12 4 Z"
+                    fill="url(#gr-steel)"
+                    stroke="#1D2622"
+                    strokeOpacity="0.45"
+                    strokeWidth="0.8"
+                  />
+                  <path d="M 8 3 C 22 8 32 16 40 24" fill="none" stroke="#A3AAA6" strokeWidth="7" strokeLinecap="round" />
+                  <path d={ringPath(54, 32, 16, 10)} fill="#A3AAA6" fillRule="evenodd" stroke="#1D2622" strokeOpacity="0.4" strokeWidth="0.8" />
+                  <path d="M 44 46 q -2 14 10 20" fill="none" stroke="#A3AAA6" strokeWidth="5" strokeLinecap="round" />
+                </g>
+                <circle r="6" fill="url(#gr-nickel)" stroke="#1D2622" strokeOpacity="0.5" strokeWidth="0.8" />
+                <line x1="-3.5" y1="0" x2="3.5" y2="0" stroke="#1D2622" strokeOpacity="0.6" strokeWidth="1" />
+              </g>
+              <text x="318" y="392" textAnchor="middle" className="f-label" fontSize="9" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.55">
+                НОЖНИЦЫ · 6″
+              </text>
+            </motion.g>
+          </motion.g>
+
+          <text x="388" y="58" textAnchor="end" className="f-label" fontSize="9" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.55">
+            ГРЕБЕНЬ · 22 СМ
+          </text>
+        </svg>
+      </motion.div>
 
       <motion.div
         {...lateIn(1.1)}
         className="f-label pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/65"
       >
-        <span>Чертёж № 01</span>
-        <span className="text-[#2E5E4E]">М 1:2</span>
-      </motion.div>
-
-      <motion.div
-        {...lateIn(1.3)}
-        className="f-label absolute inset-x-0 bottom-0 grid grid-cols-[1fr_auto_auto] border-t border-[#2E5E4E]/30 bg-[#F7F7F3]/80 text-[10px] uppercase tracking-[0.16em] text-[#1D2622]/55 backdrop-blur-md"
-      >
-        <div className="min-w-0 border-r border-[#2E5E4E]/20 px-4 py-2.5">
-          <span className="block">Изделие</span>
-          <span className="f-display block truncate text-xl normal-case italic tracking-normal text-[#1D2622]">Опасная бритва</span>
-        </div>
-        <div className="border-r border-[#2E5E4E]/20 px-4 py-2.5">
-          <span className="block">Сталь</span>
-          <span className="mt-1 block text-[11px] text-[#1D2622]">60 HRC</span>
-        </div>
-        <div className="px-4 py-2.5">
-          <span className="block">Лист</span>
-          <span className="mt-1 block text-[11px] text-[#2E5E4E]">01</span>
-        </div>
+        <span>Рабочее место № 1</span>
+        <span className="text-[#2E5E4E]">Кресло 1 / 6</span>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, x: -40, rotate: -8 }}
         animate={ready ? { opacity: 1, x: 0, rotate: -3 } : undefined}
         transition={{ type: "spring", stiffness: 60, damping: 12, delay: 1.5 }}
-        className="absolute -left-3 top-[14%] sm:-left-12"
+        className="absolute -left-3 bottom-[6%] sm:-left-12 sm:bottom-[9%]"
       >
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="border border-[#1D2622]/15 bg-[#F7F7F3]/75 px-5 py-4 shadow-[0_30px_60px_-20px_rgba(29,38,34,0.2)] backdrop-blur-xl"
+          className="border border-[#1D2622]/15 bg-[#F7F7F3]/80 px-4 py-3 shadow-[0_30px_60px_-20px_rgba(29,38,34,0.25)] backdrop-blur-xl sm:px-5 sm:py-4"
         >
           <div className="flex gap-0.5 text-[#9A6440]">
             {Array.from({ length: 5 }, (_, i) => (
               <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
             ))}
           </div>
-          <div className="f-display mt-2 text-5xl font-bold leading-none">4,98</div>
+          <div className="f-display mt-2 text-4xl font-bold leading-none sm:text-5xl">4,98</div>
           <div className="f-label mt-1 text-[11px] uppercase tracking-[0.18em] text-[#1D2622]/60">1 240 отзывов</div>
         </motion.div>
       </motion.div>
@@ -1282,7 +1433,7 @@ function Hero({ ready, onNav }) {
         </motion.div>
 
         <div className="lg:col-span-5">
-          <RazorPanel ready={ready} progress={scrollYProgress} />
+          <ToolsPanel ready={ready} progress={scrollYProgress} />
         </div>
       </Container>
 
