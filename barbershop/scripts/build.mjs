@@ -5,7 +5,7 @@
 // а код страницы и Tailwind CSS встраиваются инлайном.
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,6 +53,8 @@ const fragment = readFileSync(p("src/template.html"), "utf8")
   .replace("/*__APP__*/", () => app);
 
 writeFileSync(p("dist/artifact.html"), fragment);
+// фото гостей лежат рядом со страницей: clients/*.webp
+cpSync(p("clients"), p("dist/clients"), { recursive: true });
 writeFileSync(
   p("index.html"),
   `<!doctype html>\n<html lang="ru">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n${fragment.replace('<div id="root"></div>', "</head>\n<body>\n<div id=\"root\"></div>")}\n</body>\n</html>\n`

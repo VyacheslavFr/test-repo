@@ -24,6 +24,8 @@ import {
 } from "framer-motion";
 import {
   ArrowDown,
+  ArrowLeft,
+  ArrowRight,
   ArrowUpRight,
   Check,
   Clock,
@@ -199,6 +201,7 @@ const MASTERS = [
 const TIMES = Array.from({ length: 12 }, (_, i) => `${10 + i}:00`);
 const NAV = [
   { id: "craft", label: "Ремесло" },
+  { id: "works", label: "Работы" },
   { id: "ritual", label: "Ритуал" },
   { id: "masters", label: "Мастера" },
   { id: "booking", label: "Контакты" },
@@ -1939,6 +1942,294 @@ function Services({ onSelect }) {
   );
 }
 
+/* ───────────────────────────── Работы ───────────────────────────── */
+
+// Фото гостей лежат рядом со страницей в папке clients/
+const WORKS = [
+  {
+    id: "w1",
+    src: "clients/client-1.webp",
+    w: 800,
+    h: 1200,
+    title: "Кроп с прямой чёлкой",
+    note: "Ножницы, плотная текстура и ровная линия чёлки.",
+    service: "signature",
+  },
+  {
+    id: "w2",
+    src: "clients/client-2.webp",
+    w: 960,
+    h: 1707,
+    title: "Скин-фейд и борода",
+    note: "Переход от кожи на висках, контур бороды опасной бритвой.",
+    service: "fade",
+  },
+  {
+    id: "w3",
+    src: "clients/client-3.webp",
+    w: 960,
+    h: 1440,
+    title: "Текстурная стрижка",
+    note: "Рваная чёлка и лёгкая небрежная укладка.",
+    service: "signature",
+  },
+  { id: "w4", src: "clients/client-4.webp", w: 960, h: 1438, title: "Текстурный кроп", note: "Объём сверху и мягкий переход по вискам.", service: "signature" },
+  { id: "w5", src: "clients/client-5.webp", w: 960, h: 1199, title: "Маллет с фейдом", note: "Длина на затылке, фейд и оформление бороды.", service: "fade" },
+];
+const WORK_COLUMNS_DESKTOP = [
+  ["w1", "w4"],
+  ["w2", "cta"],
+  ["w5", "w3"],
+];
+const WORK_COLUMNS_MOBILE = [
+  ["w1", "w3", "w5"],
+  ["w2", "w4", "cta"],
+];
+const workById = (id) => WORKS.find((w) => w.id === id);
+
+function WorkCard({ work, index, arch, onOpen, onPick, compact }) {
+  const fine = useFinePointer();
+  const service = SERVICES.find((s) => s.id === work.service);
+  return (
+    <motion.figure
+      initial="rest"
+      whileHover="hover"
+      animate="rest"
+      className={`group relative overflow-hidden bg-[#E1E8E2] shadow-[0_30px_60px_-40px_rgba(38,51,45,0.45)] ${arch ? "rounded-b-[28px] rounded-t-[999px]" : "rounded-[28px]"}`}
+      style={{ aspectRatio: `${work.w} / ${work.h}` }}
+    >
+      <motion.img
+        src={work.src}
+        alt={`${work.title} — работа Onix Barbershop`}
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover"
+        variants={{ rest: { scale: 1.02 }, hover: { scale: 1.08 } }}
+        transition={{ type: "spring", stiffness: 70, damping: 18 }}
+      />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#26332D]/75 via-[#26332D]/10 to-transparent"
+        variants={{ rest: { opacity: fine ? 0.35 : 0.85 }, hover: { opacity: 1 } }}
+        transition={{ duration: 0.35 }}
+      />
+      <button type="button" onClick={() => onOpen(work.id)} className="absolute inset-0 z-10" aria-label={`Открыть фото: ${work.title}`} data-cursor="view" />
+      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 z-20 p-4 text-[#FAFBF8] sm:p-6">
+        <motion.div
+          variants={{ rest: fine ? { y: 18, opacity: 0 } : { y: 0, opacity: 1 }, hover: { y: 0, opacity: 1 } }}
+          transition={{ type: "spring", stiffness: 160, damping: 20 }}
+        >
+          <span className="f-label block text-[11px] uppercase tracking-[0.14em] text-[#FAFBF8]/75">Работа {String(index + 1).padStart(2, "0")}</span>
+          <span className={`f-display block leading-tight ${compact ? "text-[1.05rem]" : "text-[1.6rem]"}`}>{work.title}</span>
+          {compact ? null : (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[14px] text-[#FAFBF8]/80">
+                {service.title} · {fmtPrice(service.price)}
+              </span>
+              <button
+                type="button"
+                onClick={() => onPick(work.service)}
+                className="f-label pointer-events-auto rounded-full bg-[#FAFBF8] px-4 py-2 text-[12px] uppercase tracking-[0.1em] text-[#26332D]"
+              >
+                Хочу так
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </figcaption>
+    </motion.figure>
+  );
+}
+
+function WorksCta({ onPick, compact }) {
+  return (
+    <div className={`flex flex-col justify-between rounded-[28px] bg-[#E7D6C5] ${compact ? "gap-4 p-4" : "gap-6 p-6 sm:p-8"}`}>
+      <p className={`f-display leading-snug text-[#26332D] ${compact ? "text-[1.15rem]" : "text-[2rem]"}`}>
+        Следующая работа <span className="italic text-[#4F7A68]">может быть вашей</span>
+      </p>
+      {compact ? (
+        <motion.button
+          type="button"
+          onClick={() => onPick(null)}
+          whileTap={{ scale: 0.95 }}
+          className="f-label inline-flex items-center justify-center gap-2 rounded-full bg-[#4F7A68] px-4 py-2.5 text-[12px] uppercase tracking-[0.1em] text-[#FAFBF8]"
+        >
+          Записаться
+          <ArrowUpRight size={14} />
+        </motion.button>
+      ) : (
+        <div>
+          <PrimaryButton onClick={() => onPick(null)}>Записаться</PrimaryButton>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Lightbox({ index, onClose, onStep, onPick }) {
+  const work = WORKS[index];
+  const service = SERVICES.find((s) => s.id === work.service);
+  const closeRef = useRef(null);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") onStep(1);
+      if (e.key === "ArrowLeft") onStep(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    closeRef.current?.focus();
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.documentElement.style.overflow = prevOverflow;
+    };
+  }, [onClose, onStep]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[150] flex items-center justify-center bg-[#26332D]/70 p-3 backdrop-blur-md sm:p-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={work.title}
+    >
+      <motion.div
+        className="relative flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-[32px] bg-[#FAFBF8] p-3 shadow-[0_60px_120px_-40px_rgba(0,0,0,0.5)] sm:flex-row sm:gap-2 sm:p-4"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ y: 40, scale: 0.96 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: 30, scale: 0.97 }}
+        transition={springSoft}
+      >
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[24px] bg-[#E1E8E2]">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.img
+              key={work.id}
+              src={work.src}
+              alt={`${work.title} — работа Onix Barbershop`}
+              className="block max-h-[58vh] w-auto max-w-full object-contain sm:max-h-[82vh]"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.28, ease: "easeOut" }}
+            />
+          </AnimatePresence>
+        </div>
+        <div className="flex shrink-0 flex-col justify-between gap-5 p-3 pt-5 sm:w-80 sm:p-6">
+          <div>
+            <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#4F7A68]">
+              Работа {String(index + 1).padStart(2, "0")} / {String(WORKS.length).padStart(2, "0")}
+            </p>
+            <h3 className="f-display mt-2 text-[1.9rem] font-medium leading-tight text-[#26332D]">{work.title}</h3>
+            <p className="mt-3 text-[15px] leading-relaxed text-[#26332D]/70">{work.note}</p>
+            <p className="f-label mt-4 text-[12px] uppercase tracking-[0.1em] text-[#26332D]/60">
+              {service.title} · {fmtPrice(service.price)} · {service.time} мин
+            </p>
+          </div>
+          <div className="flex flex-col gap-4">
+            <PrimaryButton onClick={() => onPick(work.service)}>Хочу так же</PrimaryButton>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => onStep(-1)}
+                aria-label="Предыдущая работа"
+                className="grid h-11 w-11 place-items-center rounded-full border border-[#26332D]/20 text-[#26332D]"
+              >
+                <ArrowLeft size={18} strokeWidth={1.6} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onStep(1)}
+                aria-label="Следующая работа"
+                className="grid h-11 w-11 place-items-center rounded-full border border-[#26332D]/20 text-[#26332D]"
+              >
+                <ArrowRight size={18} strokeWidth={1.6} />
+              </button>
+            </div>
+          </div>
+        </div>
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          aria-label="Закрыть"
+          className="absolute right-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full bg-[#FAFBF8]/90 text-[#26332D] shadow-[0_8px_20px_-10px_rgba(38,51,45,0.6)] sm:right-6 sm:top-6"
+        >
+          <X size={18} />
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function Works({ onPick }) {
+  const ref = useRef(null);
+  const reduced = useReducedMotion();
+  const [open, setOpen] = useState(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const yA = useTransform(scrollYProgress, [0, 1], reduced ? [0, 0] : [50, -50]);
+  const yB = useTransform(scrollYProgress, [0, 1], reduced ? [0, 0] : [160, -160]);
+  const yC = useTransform(scrollYProgress, [0, 1], reduced ? [0, 0] : [90, -90]);
+  const openIndex = open == null ? -1 : WORKS.findIndex((w) => w.id === open);
+  const close = useCallback(() => setOpen(null), []);
+  const step = useCallback((d) => setOpen((id) => WORKS[(WORKS.findIndex((w) => w.id === id) + d + WORKS.length) % WORKS.length].id), []);
+  const pick = (service) => {
+    setOpen(null);
+    onPick(service);
+  };
+
+  const renderItem = (id, i, compact) => {
+    if (id === "cta") return <WorksCta key="cta" onPick={pick} compact={compact} />;
+    const work = workById(id);
+    const index = WORKS.indexOf(work);
+    return (
+      <motion.div
+        key={id}
+        initial={{ opacity: 0, y: 70, scale: 0.97 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, amount: 0.15 }}
+        transition={{ ...springSoft, delay: i * 0.08 }}
+      >
+        <WorkCard work={work} index={index} arch={i === 0} onOpen={setOpen} onPick={pick} compact={compact} />
+      </motion.div>
+    );
+  };
+
+  return (
+    <section id="works" ref={ref} className="relative scroll-mt-20 overflow-hidden py-24 sm:py-32">
+      <div aria-hidden="true" className="pointer-events-none absolute right-[-10%] top-[10%] h-[40vmax] w-[40vmax] rounded-full bg-[#E7D6C5]/60 blur-[120px]" />
+      <Container>
+        <SectionHead
+          eyebrow="Портфолио"
+          title="Наши"
+          italic="работы"
+          aside="Реальные гости Onix Barbershop после визита. Нажмите на фото, чтобы рассмотреть стрижку и записаться на такую же."
+        />
+        <div className="mt-14 hidden grid-cols-3 items-start gap-6 sm:mt-20 lg:grid">
+          {WORK_COLUMNS_DESKTOP.map((col, c) => (
+            <motion.div key={c} className={`flex flex-col gap-6 ${c === 1 ? "mt-28" : c === 2 ? "mt-12" : ""}`} style={{ y: [yA, yB, yC][c] }}>
+              {col.map((id, i) => renderItem(id, i, false))}
+            </motion.div>
+          ))}
+        </div>
+        <div className="mt-12 grid grid-cols-2 items-start gap-3 sm:gap-5 lg:hidden">
+          {WORK_COLUMNS_MOBILE.map((col, c) => (
+            <div key={c} className={`flex flex-col gap-3 sm:gap-5 ${c === 1 ? "mt-10" : ""}`}>
+              {col.map((id, i) => renderItem(id, i, true))}
+            </div>
+          ))}
+        </div>
+      </Container>
+      <AnimatePresence>{openIndex >= 0 ? <Lightbox key="lightbox" index={openIndex} onClose={close} onStep={step} onPick={pick} /> : null}</AnimatePresence>
+    </section>
+  );
+}
+
 /* ───────────────────────────── Ритуал (GSAP pin) ────────────────── */
 
 function Ritual() {
@@ -2742,6 +3033,13 @@ export default function BarbershopLanding() {
     const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
   }, []);
+  const pickService = useCallback(
+    (id) => {
+      if (id) setService(id);
+      go("booking");
+    },
+    [go],
+  );
 
   useEffect(() => {
     if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
@@ -2766,12 +3064,8 @@ export default function BarbershopLanding() {
           <Hero ready={!loading} onNav={go} />
           <MarqueeBand />
           <Manifesto />
-          <Services
-            onSelect={(id) => {
-              setService(id);
-              go("booking");
-            }}
-          />
+          <Services onSelect={pickService} />
+          <Works onPick={pickService} />
           <Ritual />
           <Masters
             onBook={(id) => {
