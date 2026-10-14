@@ -895,16 +895,17 @@ function buildScissors() {
   const satin = new THREE.MeshStandardMaterial({ color: srgb(0xb4bbb7), metalness: 1, roughness: 0.36 });
   const silicone = new THREE.MeshStandardMaterial({ color: srgb(0x34403a), roughness: 0.75 });
   const jewel = new THREE.MeshPhysicalMaterial({ color: srgb(0x4f7a68), roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04 });
-  const ex = { depth: 0.035, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 3, curveSegments: 40 };
+  const ex = { depth: 0.032, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.005, bevelSegments: 3, curveSegments: 48 };
   const face = ex.depth / 2 + ex.bevelThickness;
 
   // контур половинки: лезвие вправо от оси, хвостовик и кольцо — влево-вниз
   const halfShape = ({ c, ro, hole, tang }) => {
     const at = (a) => [c[0] + ro * Math.cos(deg(a)), c[1] + ro * Math.sin(deg(a))];
     const s = new THREE.Shape();
-    s.moveTo(1.75, 0.012);
-    s.quadraticCurveTo(1.0, 0.13, 0.15, 0.115);
-    s.quadraticCurveTo(-0.05, 0.11, -0.2, 0.05);
+    s.moveTo(1.9, 0.003);
+    s.quadraticCurveTo(1.25, 0.075, 0.5, 0.088);
+    s.quadraticCurveTo(0.12, 0.092, -0.06, 0.078);
+    s.quadraticCurveTo(-0.14, 0.07, -0.2, 0.04);
     const p = at(70);
     s.quadraticCurveTo(-0.55, -0.06, p[0], p[1]);
     if (tang) {
@@ -917,41 +918,50 @@ function buildScissors() {
     } else {
       s.absarc(c[0], c[1], ro, deg(70), deg(370), false);
     }
-    s.quadraticCurveTo(-0.4, -0.22, 0.0, -0.06);
-    s.lineTo(0.45, -0.03);
-    s.quadraticCurveTo(1.2, -0.01, 1.75, 0.012);
+    s.quadraticCurveTo(-0.4, -0.2, 0.0, -0.046);
+    s.lineTo(0.45, -0.022);
+    s.quadraticCurveTo(1.2, -0.006, 1.9, 0.003);
     const h = new THREE.Path();
     h.absellipse(c[0], c[1], hole[0], hole[1], 0, Math.PI * 2, true);
     s.holes.push(h);
     return s;
   };
-  // полированная кромка вдоль режущей стороны
+  // полированная заточка вдоль режущей стороны и тонкий блик по обуху
   const edgeShape = new THREE.Shape();
-  edgeShape.moveTo(0.32, -0.03);
-  edgeShape.quadraticCurveTo(1.2, -0.012, 1.72, 0.011);
-  edgeShape.quadraticCurveTo(1.2, 0.012, 0.32, -0.004);
-  edgeShape.lineTo(0.32, -0.03);
+  edgeShape.moveTo(0.36, -0.019);
+  edgeShape.quadraticCurveTo(1.2, -0.005, 1.88, 0.003);
+  edgeShape.quadraticCurveTo(1.2, 0.016, 0.36, 0.004);
+  edgeShape.lineTo(0.36, -0.019);
+  const spineShape = new THREE.Shape();
+  spineShape.moveTo(0.18, 0.08);
+  spineShape.quadraticCurveTo(0.6, 0.083, 1.0, 0.07);
+  spineShape.quadraticCurveTo(1.5, 0.048, 1.87, 0.004);
+  spineShape.quadraticCurveTo(1.5, 0.04, 1.0, 0.06);
+  spineShape.quadraticCurveTo(0.6, 0.072, 0.18, 0.07);
+  spineShape.lineTo(0.18, 0.08);
 
   const half = (sign, z, ring) => {
     const g = new THREE.Group();
     const geo = new THREE.ExtrudeGeometry(halfShape(ring), ex);
     geo.translate(0, 0, -ex.depth / 2);
     const body = new THREE.Mesh(geo, steel);
-    const edge = new THREE.Mesh(new THREE.ShapeGeometry(edgeShape, 24), mirror);
+    const edge = new THREE.Mesh(new THREE.ShapeGeometry(edgeShape, 32), mirror);
     edge.position.z = face + 0.0006;
+    const ridge = new THREE.Mesh(new THREE.ShapeGeometry(spineShape, 32), mirror);
+    ridge.position.z = face + 0.0006;
     const avg = (ring.hole[0] + ring.hole[1]) / 2;
     const insert = new THREE.Mesh(new THREE.TorusGeometry(avg - 0.012, 0.024, 16, 64), silicone);
     insert.scale.set(ring.hole[0] / avg, ring.hole[1] / avg, 1);
     insert.position.set(ring.c[0], ring.c[1], 0);
     const inner = new THREE.Group();
-    inner.add(body, edge, insert);
+    inner.add(body, edge, ridge, insert);
     inner.scale.y = sign;
     g.add(inner);
     g.position.z = z;
     return g;
   };
-  const a = half(1, 0.024, { c: [-0.98, -0.36], ro: 0.23, hole: [0.155, 0.135], tang: true });
-  const b = half(-1, -0.024, { c: [-0.9, -0.3], ro: 0.2, hole: [0.13, 0.115], tang: false });
+  const a = half(1, 0.022, { c: [-0.98, -0.35], ro: 0.21, hole: [0.15, 0.13], tang: true });
+  const b = half(-1, -0.022, { c: [-0.9, -0.29], ro: 0.185, hole: [0.128, 0.112], tang: false });
 
   // винт регулировки натяжения: шайба, рифлёная головка и камень
   const pivot = new THREE.Group();
@@ -974,11 +984,11 @@ function buildScissors() {
 
   const inner = new THREE.Group();
   inner.add(b, a, pivot);
-  inner.position.x = -0.19;
+  inner.position.x = -0.26;
   const tilt = new THREE.Group();
   tilt.add(inner);
   tilt.rotation.z = 0.5;
-  tilt.scale.setScalar(0.92);
+  tilt.scale.setScalar(0.9);
   const snip = (d) => {
     const r = deg(d / 2);
     a.rotation.z = r;
@@ -988,113 +998,100 @@ function buildScissors() {
   return { object: tilt, tiltX: 0.28, snip };
 }
 
-/** Гребень для стрижки: черепаховый ацетат, утолщённый корпус, зубья с сужением, отверстие и сантиметровая шкала. */
+/** Гребень для стрижки: черепаховый ацетат, утолщённая спинка, крайние зубья-ограничители, частые и редкие зубья с сужением. */
 function buildComb() {
-  const tortoise = canvasTexture(512, 256, (ctx, w, h) => {
-    ctx.fillStyle = "#8A5636";
+  // черепаховая расцветка: янтарная основа, тёмные пятна разной плотности, светлые прожилки и мелкое зерно
+  const tortoise = canvasTexture(1024, 512, (ctx, w, h) => {
+    const base = ctx.createLinearGradient(0, 0, w, h);
+    base.addColorStop(0, "#9A6234");
+    base.addColorStop(0.5, "#B0773F");
+    base.addColorStop(1, "#8C5730");
+    ctx.fillStyle = base;
     ctx.fillRect(0, 0, w, h);
-    const rand = mulberry32(77);
-    for (let i = 0; i < 90; i += 1) {
-      const x = rand() * w;
-      const y = rand() * h;
-      const r = 8 + rand() * 44;
-      const dark = rand() > 0.4;
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, dark ? "rgba(52,24,10,0.75)" : "rgba(214,150,86,0.6)");
-      g.addColorStop(1, dark ? "rgba(52,24,10,0)" : "rgba(214,150,86,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.ellipse(x, y, r * 1.7, r, rand() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
+    const rand = mulberry32(91);
+    const blot = (count, rMin, rMax, rgb, alpha, stretch) => {
+      for (let i = 0; i < count; i += 1) {
+        const x = rand() * w;
+        const y = rand() * h;
+        const r = rMin + rand() * (rMax - rMin);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(${rgb},${alpha})`);
+        g.addColorStop(0.6, `rgba(${rgb},${alpha * 0.55})`);
+        g.addColorStop(1, `rgba(${rgb},0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(x, y, r * stretch, r, (rand() - 0.5) * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+    blot(60, 30, 90, "70,34,14", 0.55, 2.2);
+    blot(140, 8, 30, "48,22,8", 0.7, 1.8);
+    blot(60, 10, 40, "222,164,96", 0.45, 2.6);
+    for (let i = 0; i < 4000; i += 1) {
+      ctx.fillStyle = `rgba(40,18,6,${(rand() * 0.12).toFixed(3)})`;
+      ctx.fillRect(rand() * w, rand() * h, 2, 2);
     }
   });
   tortoise.wrapS = THREE.RepeatWrapping;
   tortoise.wrapT = THREE.RepeatWrapping;
-  tortoise.repeat.set(0.42, 1.1);
-  const acetate = new THREE.MeshPhysicalMaterial({ map: tortoise, roughness: 0.28, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08 });
+  tortoise.repeat.set(0.38, 1.0);
+  const acetate = new THREE.MeshPhysicalMaterial({ map: tortoise, roughness: 0.22, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 });
 
-  const W = 2.5;
-  const top = 0.34;
-  const base = -0.02;
-  const tipY = -0.48;
+  const W = 2.6;
+  const top = 0.2;
+  const base = -0.05;
+  const tipY = -0.46;
   const s = new THREE.Shape();
   s.moveTo(-W / 2, base);
-  s.lineTo(-W / 2, top - 0.1);
-  s.quadraticCurveTo(-W / 2, top, -W / 2 + 0.1, top);
-  s.lineTo(W / 2 - 0.1, top);
-  s.quadraticCurveTo(W / 2, top, W / 2, top - 0.1);
+  s.lineTo(-W / 2, top - 0.08);
+  s.quadraticCurveTo(-W / 2, top, -W / 2 + 0.08, top);
+  s.lineTo(W / 2 - 0.08, top);
+  s.quadraticCurveTo(W / 2, top, W / 2, top - 0.08);
   s.lineTo(W / 2, tipY + 0.05);
-  s.quadraticCurveTo(W / 2, tipY, W / 2 - 0.035, tipY);
-  s.lineTo(W / 2 - 0.065, tipY + 0.02);
-  let x = W / 2 - 0.065;
-  // справа частые зубья, слева редкие; каждый зуб сужается к кончику, между зубьями — скруглённое основание
-  while (x > -W / 2 + 0.22) {
+  s.quadraticCurveTo(W / 2, tipY, W / 2 - 0.03, tipY);
+  s.lineTo(W / 2 - 0.06, tipY + 0.02);
+  let x = W / 2 - 0.06;
+  // справа частые зубья, слева редкие; каждый зуб сужается к скруглённому кончику
+  while (x > -W / 2 + 0.2) {
     const fine = x > 0;
-    const gap = fine ? 0.034 : 0.064;
-    const tw = fine ? 0.032 : 0.05;
-    const taper = tw * 0.22;
+    const gap = fine ? 0.03 : 0.058;
+    const tw = fine ? 0.03 : 0.046;
+    const taper = tw * 0.25;
     s.lineTo(x, base);
-    s.quadraticCurveTo(x - gap / 2, base + 0.035, x - gap, base);
-    s.lineTo(x - gap - taper, tipY + 0.03);
-    s.quadraticCurveTo(x - gap - tw / 2, tipY - 0.014, x - gap - tw + taper, tipY + 0.03);
+    s.quadraticCurveTo(x - gap / 2, base + 0.03, x - gap, base);
+    s.lineTo(x - gap - taper, tipY + 0.028);
+    s.quadraticCurveTo(x - gap - tw / 2, tipY - 0.012, x - gap - tw + taper, tipY + 0.028);
     x -= gap + tw;
   }
   s.lineTo(x, base);
-  s.lineTo(-W / 2 + 0.065, base);
-  s.lineTo(-W / 2 + 0.065, tipY + 0.02);
+  s.lineTo(-W / 2 + 0.06, base);
+  s.lineTo(-W / 2 + 0.06, tipY + 0.02);
   s.quadraticCurveTo(-W / 2, tipY, -W / 2, tipY + 0.05);
-  const hole = new THREE.Path();
-  hole.absarc(-W / 2 + 0.13, 0.16, 0.055, 0, Math.PI * 2, true);
-  s.holes.push(hole);
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 2, curveSegments: 6 });
-  geo.translate(0, 0.07, -0.02);
+  const teeth = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.005, bevelSegments: 2, curveSegments: 6 });
+  teeth.translate(0, 0.13, -0.015);
 
-  // утолщённый корпус-спинка
-  const rib = new THREE.Shape();
-  const rx0 = -W / 2 + 0.24;
-  const rx1 = W / 2 - 0.02;
-  rib.moveTo(rx0, base + 0.02);
-  rib.lineTo(rx1 - 0.06, base + 0.02);
-  rib.quadraticCurveTo(rx1, base + 0.02, rx1, base + 0.08);
-  rib.lineTo(rx1, top - 0.08);
-  rib.quadraticCurveTo(rx1, top - 0.02, rx1 - 0.06, top - 0.02);
-  rib.lineTo(rx0, top - 0.02);
-  rib.quadraticCurveTo(rx0 - 0.04, (top + base) / 2, rx0, base + 0.02);
-  const ribGeo = new THREE.ExtrudeGeometry(rib, {
-    depth: 0.07,
+  // спинка толще зубьев и мягко скруглена
+  const back = new THREE.Shape();
+  back.moveTo(-W / 2 + 0.004, base - 0.01);
+  back.lineTo(-W / 2 + 0.004, top - 0.08);
+  back.quadraticCurveTo(-W / 2 + 0.004, top - 0.004, -W / 2 + 0.08, top - 0.004);
+  back.lineTo(W / 2 - 0.08, top - 0.004);
+  back.quadraticCurveTo(W / 2 - 0.004, top - 0.004, W / 2 - 0.004, top - 0.08);
+  back.lineTo(W / 2 - 0.004, base - 0.01);
+  back.lineTo(-W / 2 + 0.004, base - 0.01);
+  const backGeo = new THREE.ExtrudeGeometry(back, {
+    depth: 0.05,
     bevelEnabled: true,
     bevelThickness: 0.014,
-    bevelSize: 0.012,
-    bevelSegments: 4,
+    bevelSize: 0.01,
+    bevelSegments: 5,
     curveSegments: 12,
   });
-  ribGeo.translate(0, 0.07, -0.035);
-
-  // сантиметровая шкала на спинке, как на настоящих гребнях
-  const rulerW = rx1 - rx0 - 0.12;
-  const ruler = canvasTexture(1024, 96, (ctx, w, h) => {
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "rgba(250,246,238,0.88)";
-    const marks = 170;
-    for (let i = 0; i <= marks; i += 1) {
-      const px = 8 + (i * (w - 16)) / marks;
-      const len = i % 10 === 0 ? 44 : i % 5 === 0 ? 30 : 18;
-      ctx.fillRect(px - 1, 0, 2, len);
-      if (i % 10 === 0 && i < marks) {
-        ctx.font = "600 26px Manrope, Arial, sans-serif";
-        ctx.fillText(String(i / 10), px + 5, 78);
-      }
-    }
-  });
-  const rulerMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(rulerW, rulerW * (96 / 1024)),
-    new THREE.MeshStandardMaterial({ map: ruler, transparent: true, roughness: 0.5, depthWrite: false }),
-  );
-  rulerMesh.position.set((rx0 + rx1) / 2 + 0.02, top + 0.02 - (rulerW * (96 / 1024)) / 2, 0.05);
+  backGeo.translate(0, 0.13, -0.025);
 
   const tilt = new THREE.Group();
-  tilt.add(new THREE.Mesh(geo, acetate), new THREE.Mesh(ribGeo, acetate), rulerMesh);
-  tilt.rotation.z = -0.14;
+  tilt.add(new THREE.Mesh(teeth, acetate), new THREE.Mesh(backGeo, acetate));
+  tilt.rotation.z = -0.12;
   return { object: tilt, tiltX: 0.38 };
 }
 

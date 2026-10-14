@@ -682,9 +682,9 @@ input::placeholder { color: rgba(38, 51, 45, 0.38); }
   }
   var deg = (d) => d * Math.PI / 180;
   function buildScissors() {
-    let steel = new THREE.MeshStandardMaterial({ color: srgb(14278363), metalness: 1, roughness: 0.15 }), mirror = new THREE.MeshStandardMaterial({ color: srgb(16317177), metalness: 1, roughness: 0.05 }), satin = new THREE.MeshStandardMaterial({ color: srgb(11844535), metalness: 1, roughness: 0.36 }), silicone = new THREE.MeshStandardMaterial({ color: srgb(3424314), roughness: 0.75 }), jewel = new THREE.MeshPhysicalMaterial({ color: srgb(5208680), roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04 }), ex = { depth: 0.035, bevelEnabled: !0, bevelThickness: 0.01, bevelSize: 8e-3, bevelSegments: 3, curveSegments: 40 }, face = ex.depth / 2 + ex.bevelThickness, halfShape = ({ c, ro, hole, tang }) => {
+    let steel = new THREE.MeshStandardMaterial({ color: srgb(14278363), metalness: 1, roughness: 0.15 }), mirror = new THREE.MeshStandardMaterial({ color: srgb(16317177), metalness: 1, roughness: 0.05 }), satin = new THREE.MeshStandardMaterial({ color: srgb(11844535), metalness: 1, roughness: 0.36 }), silicone = new THREE.MeshStandardMaterial({ color: srgb(3424314), roughness: 0.75 }), jewel = new THREE.MeshPhysicalMaterial({ color: srgb(5208680), roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04 }), ex = { depth: 0.032, bevelEnabled: !0, bevelThickness: 8e-3, bevelSize: 5e-3, bevelSegments: 3, curveSegments: 48 }, face = ex.depth / 2 + ex.bevelThickness, halfShape = ({ c, ro, hole, tang }) => {
       let at = (a2) => [c[0] + ro * Math.cos(deg(a2)), c[1] + ro * Math.sin(deg(a2))], s = new THREE.Shape();
-      s.moveTo(1.75, 0.012), s.quadraticCurveTo(1, 0.13, 0.15, 0.115), s.quadraticCurveTo(-0.05, 0.11, -0.2, 0.05);
+      s.moveTo(1.9, 3e-3), s.quadraticCurveTo(1.25, 0.075, 0.5, 0.088), s.quadraticCurveTo(0.12, 0.092, -0.06, 0.078), s.quadraticCurveTo(-0.14, 0.07, -0.2, 0.04);
       let p = at(70);
       if (s.quadraticCurveTo(-0.55, -0.06, p[0], p[1]), tang) {
         s.absarc(c[0], c[1], ro, deg(70), deg(235), !1), s.quadraticCurveTo(c[0] - 0.22, c[1] - 0.36, c[0] - 0.36, c[1] - 0.42), s.quadraticCurveTo(c[0] - 0.41, c[1] - 0.44, c[0] - 0.37, c[1] - 0.37);
@@ -692,21 +692,25 @@ input::placeholder { color: rgba(38, 51, 45, 0.38); }
         s.quadraticCurveTo(c[0] - 0.13, c[1] - 0.3, t2[0], t2[1]), s.absarc(c[0], c[1], ro, deg(265), deg(370), !1);
       } else
         s.absarc(c[0], c[1], ro, deg(70), deg(370), !1);
-      s.quadraticCurveTo(-0.4, -0.22, 0, -0.06), s.lineTo(0.45, -0.03), s.quadraticCurveTo(1.2, -0.01, 1.75, 0.012);
+      s.quadraticCurveTo(-0.4, -0.2, 0, -0.046), s.lineTo(0.45, -0.022), s.quadraticCurveTo(1.2, -6e-3, 1.9, 3e-3);
       let h = new THREE.Path();
       return h.absellipse(c[0], c[1], hole[0], hole[1], 0, Math.PI * 2, !0), s.holes.push(h), s;
     }, edgeShape = new THREE.Shape();
-    edgeShape.moveTo(0.32, -0.03), edgeShape.quadraticCurveTo(1.2, -0.012, 1.72, 0.011), edgeShape.quadraticCurveTo(1.2, 0.012, 0.32, -4e-3), edgeShape.lineTo(0.32, -0.03);
+    edgeShape.moveTo(0.36, -0.019), edgeShape.quadraticCurveTo(1.2, -5e-3, 1.88, 3e-3), edgeShape.quadraticCurveTo(1.2, 0.016, 0.36, 4e-3), edgeShape.lineTo(0.36, -0.019);
+    let spineShape = new THREE.Shape();
+    spineShape.moveTo(0.18, 0.08), spineShape.quadraticCurveTo(0.6, 0.083, 1, 0.07), spineShape.quadraticCurveTo(1.5, 0.048, 1.87, 4e-3), spineShape.quadraticCurveTo(1.5, 0.04, 1, 0.06), spineShape.quadraticCurveTo(0.6, 0.072, 0.18, 0.07), spineShape.lineTo(0.18, 0.08);
     let half = (sign, z, ring) => {
       let g = new THREE.Group(), geo = new THREE.ExtrudeGeometry(halfShape(ring), ex);
       geo.translate(0, 0, -ex.depth / 2);
-      let body = new THREE.Mesh(geo, steel), edge = new THREE.Mesh(new THREE.ShapeGeometry(edgeShape, 24), mirror);
+      let body = new THREE.Mesh(geo, steel), edge = new THREE.Mesh(new THREE.ShapeGeometry(edgeShape, 32), mirror);
       edge.position.z = face + 6e-4;
+      let ridge = new THREE.Mesh(new THREE.ShapeGeometry(spineShape, 32), mirror);
+      ridge.position.z = face + 6e-4;
       let avg = (ring.hole[0] + ring.hole[1]) / 2, insert = new THREE.Mesh(new THREE.TorusGeometry(avg - 0.012, 0.024, 16, 64), silicone);
       insert.scale.set(ring.hole[0] / avg, ring.hole[1] / avg, 1), insert.position.set(ring.c[0], ring.c[1], 0);
       let inner2 = new THREE.Group();
-      return inner2.add(body, edge, insert), inner2.scale.y = sign, g.add(inner2), g.position.z = z, g;
-    }, a = half(1, 0.024, { c: [-0.98, -0.36], ro: 0.23, hole: [0.155, 0.135], tang: !0 }), b = half(-1, -0.024, { c: [-0.9, -0.3], ro: 0.2, hole: [0.13, 0.115], tang: !1 }), pivot = new THREE.Group(), cyl = (r, h, mat, z) => {
+      return inner2.add(body, edge, ridge, insert), inner2.scale.y = sign, g.add(inner2), g.position.z = z, g;
+    }, a = half(1, 0.022, { c: [-0.98, -0.35], ro: 0.21, hole: [0.15, 0.13], tang: !0 }), b = half(-1, -0.022, { c: [-0.9, -0.29], ro: 0.185, hole: [0.128, 0.112], tang: !1 }), pivot = new THREE.Group(), cyl = (r, h, mat, z) => {
       let m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 40), mat);
       m.rotation.x = Math.PI / 2, m.position.z = z, pivot.add(m);
     };
@@ -716,9 +720,9 @@ input::placeholder { color: rgba(38, 51, 45, 0.38); }
     let stone = new THREE.Mesh(new THREE.SphereGeometry(0.04, 24, 16), jewel);
     stone.position.z = 0.088, stone.scale.z = 0.6, pivot.add(stone), cyl(0.07, 0.03, satin, -0.062);
     let inner = new THREE.Group();
-    inner.add(b, a, pivot), inner.position.x = -0.19;
+    inner.add(b, a, pivot), inner.position.x = -0.26;
     let tilt = new THREE.Group();
-    tilt.add(inner), tilt.rotation.z = 0.5, tilt.scale.setScalar(0.92);
+    tilt.add(inner), tilt.rotation.z = 0.5, tilt.scale.setScalar(0.9);
     let snip = (d) => {
       let r = deg(d / 2);
       a.rotation.z = r, b.rotation.z = -r;
@@ -726,52 +730,43 @@ input::placeholder { color: rgba(38, 51, 45, 0.38); }
     return snip(10), { object: tilt, tiltX: 0.28, snip };
   }
   function buildComb() {
-    let tortoise = canvasTexture(512, 256, (ctx, w, h) => {
-      ctx.fillStyle = "#8A5636", ctx.fillRect(0, 0, w, h);
-      let rand = mulberry32(77);
-      for (let i = 0; i < 90; i += 1) {
-        let x2 = rand() * w, y = rand() * h, r = 8 + rand() * 44, dark = rand() > 0.4, g = ctx.createRadialGradient(x2, y, 0, x2, y, r);
-        g.addColorStop(0, dark ? "rgba(52,24,10,0.75)" : "rgba(214,150,86,0.6)"), g.addColorStop(1, dark ? "rgba(52,24,10,0)" : "rgba(214,150,86,0)"), ctx.fillStyle = g, ctx.beginPath(), ctx.ellipse(x2, y, r * 1.7, r, rand() * Math.PI, 0, Math.PI * 2), ctx.fill();
-      }
+    let tortoise = canvasTexture(1024, 512, (ctx, w, h) => {
+      let base2 = ctx.createLinearGradient(0, 0, w, h);
+      base2.addColorStop(0, "#9A6234"), base2.addColorStop(0.5, "#B0773F"), base2.addColorStop(1, "#8C5730"), ctx.fillStyle = base2, ctx.fillRect(0, 0, w, h);
+      let rand = mulberry32(91), blot = (count, rMin, rMax, rgb, alpha, stretch) => {
+        for (let i = 0; i < count; i += 1) {
+          let x2 = rand() * w, y = rand() * h, r = rMin + rand() * (rMax - rMin), g = ctx.createRadialGradient(x2, y, 0, x2, y, r);
+          g.addColorStop(0, `rgba(${rgb},${alpha})`), g.addColorStop(0.6, `rgba(${rgb},${alpha * 0.55})`), g.addColorStop(1, `rgba(${rgb},0)`), ctx.fillStyle = g, ctx.beginPath(), ctx.ellipse(x2, y, r * stretch, r, (rand() - 0.5) * 0.8, 0, Math.PI * 2), ctx.fill();
+        }
+      };
+      blot(60, 30, 90, "70,34,14", 0.55, 2.2), blot(140, 8, 30, "48,22,8", 0.7, 1.8), blot(60, 10, 40, "222,164,96", 0.45, 2.6);
+      for (let i = 0; i < 4e3; i += 1)
+        ctx.fillStyle = `rgba(40,18,6,${(rand() * 0.12).toFixed(3)})`, ctx.fillRect(rand() * w, rand() * h, 2, 2);
     });
-    tortoise.wrapS = THREE.RepeatWrapping, tortoise.wrapT = THREE.RepeatWrapping, tortoise.repeat.set(0.42, 1.1);
-    let acetate = new THREE.MeshPhysicalMaterial({ map: tortoise, roughness: 0.28, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08 }), W = 2.5, top = 0.34, base = -0.02, tipY = -0.48, s = new THREE.Shape();
-    s.moveTo(-W / 2, base), s.lineTo(-W / 2, top - 0.1), s.quadraticCurveTo(-W / 2, top, -W / 2 + 0.1, top), s.lineTo(W / 2 - 0.1, top), s.quadraticCurveTo(W / 2, top, W / 2, top - 0.1), s.lineTo(W / 2, tipY + 0.05), s.quadraticCurveTo(W / 2, tipY, W / 2 - 0.035, tipY), s.lineTo(W / 2 - 0.065, tipY + 0.02);
-    let x = W / 2 - 0.065;
-    for (; x > -W / 2 + 0.22; ) {
-      let fine = x > 0, gap = fine ? 0.034 : 0.064, tw = fine ? 0.032 : 0.05, taper = tw * 0.22;
-      s.lineTo(x, base), s.quadraticCurveTo(x - gap / 2, base + 0.035, x - gap, base), s.lineTo(x - gap - taper, tipY + 0.03), s.quadraticCurveTo(x - gap - tw / 2, tipY - 0.014, x - gap - tw + taper, tipY + 0.03), x -= gap + tw;
+    tortoise.wrapS = THREE.RepeatWrapping, tortoise.wrapT = THREE.RepeatWrapping, tortoise.repeat.set(0.38, 1);
+    let acetate = new THREE.MeshPhysicalMaterial({ map: tortoise, roughness: 0.22, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.06 }), W = 2.6, top = 0.2, base = -0.05, tipY = -0.46, s = new THREE.Shape();
+    s.moveTo(-W / 2, base), s.lineTo(-W / 2, top - 0.08), s.quadraticCurveTo(-W / 2, top, -W / 2 + 0.08, top), s.lineTo(W / 2 - 0.08, top), s.quadraticCurveTo(W / 2, top, W / 2, top - 0.08), s.lineTo(W / 2, tipY + 0.05), s.quadraticCurveTo(W / 2, tipY, W / 2 - 0.03, tipY), s.lineTo(W / 2 - 0.06, tipY + 0.02);
+    let x = W / 2 - 0.06;
+    for (; x > -W / 2 + 0.2; ) {
+      let fine = x > 0, gap = fine ? 0.03 : 0.058, tw = fine ? 0.03 : 0.046, taper = tw * 0.25;
+      s.lineTo(x, base), s.quadraticCurveTo(x - gap / 2, base + 0.03, x - gap, base), s.lineTo(x - gap - taper, tipY + 0.028), s.quadraticCurveTo(x - gap - tw / 2, tipY - 0.012, x - gap - tw + taper, tipY + 0.028), x -= gap + tw;
     }
-    s.lineTo(x, base), s.lineTo(-W / 2 + 0.065, base), s.lineTo(-W / 2 + 0.065, tipY + 0.02), s.quadraticCurveTo(-W / 2, tipY, -W / 2, tipY + 0.05);
-    let hole = new THREE.Path();
-    hole.absarc(-W / 2 + 0.13, 0.16, 0.055, 0, Math.PI * 2, !0), s.holes.push(hole);
-    let geo = new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: !0, bevelThickness: 8e-3, bevelSize: 6e-3, bevelSegments: 2, curveSegments: 6 });
-    geo.translate(0, 0.07, -0.02);
-    let rib = new THREE.Shape(), rx0 = -W / 2 + 0.24, rx1 = W / 2 - 0.02;
-    rib.moveTo(rx0, base + 0.02), rib.lineTo(rx1 - 0.06, base + 0.02), rib.quadraticCurveTo(rx1, base + 0.02, rx1, base + 0.08), rib.lineTo(rx1, top - 0.08), rib.quadraticCurveTo(rx1, top - 0.02, rx1 - 0.06, top - 0.02), rib.lineTo(rx0, top - 0.02), rib.quadraticCurveTo(rx0 - 0.04, (top + base) / 2, rx0, base + 0.02);
-    let ribGeo = new THREE.ExtrudeGeometry(rib, {
-      depth: 0.07,
+    s.lineTo(x, base), s.lineTo(-W / 2 + 0.06, base), s.lineTo(-W / 2 + 0.06, tipY + 0.02), s.quadraticCurveTo(-W / 2, tipY, -W / 2, tipY + 0.05);
+    let teeth = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: !0, bevelThickness: 6e-3, bevelSize: 5e-3, bevelSegments: 2, curveSegments: 6 });
+    teeth.translate(0, 0.13, -0.015);
+    let back = new THREE.Shape();
+    back.moveTo(-W / 2 + 4e-3, base - 0.01), back.lineTo(-W / 2 + 4e-3, top - 0.08), back.quadraticCurveTo(-W / 2 + 4e-3, top - 4e-3, -W / 2 + 0.08, top - 4e-3), back.lineTo(W / 2 - 0.08, top - 4e-3), back.quadraticCurveTo(W / 2 - 4e-3, top - 4e-3, W / 2 - 4e-3, top - 0.08), back.lineTo(W / 2 - 4e-3, base - 0.01), back.lineTo(-W / 2 + 4e-3, base - 0.01);
+    let backGeo = new THREE.ExtrudeGeometry(back, {
+      depth: 0.05,
       bevelEnabled: !0,
       bevelThickness: 0.014,
-      bevelSize: 0.012,
-      bevelSegments: 4,
+      bevelSize: 0.01,
+      bevelSegments: 5,
       curveSegments: 12
     });
-    ribGeo.translate(0, 0.07, -0.035);
-    let rulerW = rx1 - rx0 - 0.12, ruler = canvasTexture(1024, 96, (ctx, w, h) => {
-      ctx.clearRect(0, 0, w, h), ctx.fillStyle = "rgba(250,246,238,0.88)";
-      let marks = 170;
-      for (let i = 0; i <= marks; i += 1) {
-        let px = 8 + i * (w - 16) / marks, len = i % 10 === 0 ? 44 : i % 5 === 0 ? 30 : 18;
-        ctx.fillRect(px - 1, 0, 2, len), i % 10 === 0 && i < marks && (ctx.font = "600 26px Manrope, Arial, sans-serif", ctx.fillText(String(i / 10), px + 5, 78));
-      }
-    }), rulerMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(rulerW, rulerW * (96 / 1024)),
-      new THREE.MeshStandardMaterial({ map: ruler, transparent: !0, roughness: 0.5, depthWrite: !1 })
-    );
-    rulerMesh.position.set((rx0 + rx1) / 2 + 0.02, top + 0.02 - rulerW * (96 / 1024) / 2, 0.05);
+    backGeo.translate(0, 0.13, -0.025);
     let tilt = new THREE.Group();
-    return tilt.add(new THREE.Mesh(geo, acetate), new THREE.Mesh(ribGeo, acetate), rulerMesh), tilt.rotation.z = -0.14, { object: tilt, tiltX: 0.38 };
+    return tilt.add(new THREE.Mesh(teeth, acetate), new THREE.Mesh(backGeo, acetate)), tilt.rotation.z = -0.12, { object: tilt, tiltX: 0.38 };
   }
   function buildDryer() {
     let shell = new THREE.MeshPhysicalMaterial({ color: srgb(7312771), roughness: 0.36, metalness: 0.12, clearcoat: 0.7, clearcoatRoughness: 0.22 }), copper = new THREE.MeshStandardMaterial({ color: srgb(12943442), metalness: 1, roughness: 0.26 }), nickel = new THREE.MeshStandardMaterial({ color: srgb(12830917), metalness: 0.9, roughness: 0.3 }), tunnel = new THREE.MeshStandardMaterial({ color: srgb(10134430), metalness: 0.8, roughness: 0.34, side: THREE.BackSide }), dark = new THREE.MeshStandardMaterial({ color: srgb(2831408), roughness: 0.55 }), white = new THREE.MeshStandardMaterial({ color: srgb(15987695), roughness: 0.35 }), R = 1, rIn = 0.6, L = 2.2, head = new THREE.Group();
