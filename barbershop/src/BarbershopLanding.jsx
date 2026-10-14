@@ -2,7 +2,7 @@
  * Onix Barbershop — лендинг премиального барбершопа.
  *
  * Один React-компонент: React 18, Tailwind CSS, Framer Motion 11,
- * GSAP 3 + ScrollTrigger (скролл-сцены) и Lucide React (иконки).
+ * GSAP 3 + ScrollTrigger (скролл-сцены), Three.js (3D-инструменты) и Lucide React (иконки).
  * Шрифты подключаются из Google Fonts внутри <GlobalStyles />.
  */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -38,6 +38,7 @@ import {
   PenTool,
   Phone,
   Plus,
+  Rotate3d,
   ScanFace,
   Scissors,
   Send,
@@ -45,6 +46,7 @@ import {
   Wind,
   X,
 } from "lucide-react";
+import * as THREE from "three";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -299,58 +301,6 @@ input::placeholder { color: rgba(29, 38, 34, 0.38); }
 
 function GlobalStyles() {
   return <style>{GLOBAL_CSS}</style>;
-}
-
-/** Общие SVG-градиенты и узоры: сталь, плитка, свет, тени. */
-function SvgDefs() {
-  return (
-    <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="gr-steel" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5E5E5C" />
-          <stop offset="0.16" stopColor="#D9D8D3" />
-          <stop offset="0.42" stopColor="#7E7D79" />
-          <stop offset="0.7" stopColor="#ECEBE6" />
-          <stop offset="0.9" stopColor="#B9B7B0" />
-          <stop offset="1" stopColor="#FFFFFF" />
-        </linearGradient>
-        <linearGradient id="gr-nickel" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#8D9590" />
-          <stop offset="0.45" stopColor="#EEF1EF" />
-          <stop offset="1" stopColor="#A7AFAA" />
-        </linearGradient>
-        <linearGradient id="gr-dryer" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5C9A82" />
-          <stop offset="0.35" stopColor="#2E5E4E" />
-          <stop offset="1" stopColor="#1F4237" />
-        </linearGradient>
-        <linearGradient id="gr-nozzle" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#56605B" />
-          <stop offset="0.5" stopColor="#1D2622" />
-          <stop offset="1" stopColor="#323C37" />
-        </linearGradient>
-        <linearGradient id="gr-tortoise" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#B27A4E" />
-          <stop offset="0.4" stopColor="#8A5636" />
-          <stop offset="0.7" stopColor="#A86F45" />
-          <stop offset="1" stopColor="#6A3F25" />
-        </linearGradient>
-        <radialGradient id="gr-light" cx="0.12" cy="0.02" r="1.1">
-          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.85" />
-          <stop offset="0.5" stopColor="#FFFFFF" stopOpacity="0" />
-          <stop offset="1" stopColor="#1D2622" stopOpacity="0.1" />
-        </radialGradient>
-        <pattern id="gr-tiles" width="44" height="44" patternUnits="userSpaceOnUse">
-          <rect width="44" height="44" fill="#F4F5F1" />
-          <path d="M 0 0.5 H 44 M 0 22.5 H 44 M 0.5 0 V 22 M 22.5 22 V 44" fill="none" stroke="#D3D8D2" strokeWidth="1" />
-          <path d="M 0 1.6 H 44 M 0 23.6 H 44" fill="none" stroke="#FFFFFF" strokeOpacity="0.9" strokeWidth="1" />
-        </pattern>
-        <filter id="gr-shadow" x="-30%" y="-30%" width="160%" height="170%">
-          <feDropShadow dx="3" dy="8" stdDeviation="5" floodColor="#1D2622" floodOpacity="0.22" />
-        </filter>
-      </defs>
-    </svg>
-  );
 }
 
 /* ─────────────────────── Базовые примитивы ─────────────────────── */
@@ -952,364 +902,627 @@ function Nav({ ready, onNav }) {
   );
 }
 
-/* ─────────────── Рабочее место в герое: фен, гребень и ножницы ─────────────── */
+/* ─────────────── Первый экран: инструменты мастера в 3D ─────────────── */
 
-// Прядь волос свисает из-за верхнего края кадра; фен её обдувает, гребень расчёсывает, ножницы подравнивают.
-const HAIR = { y0: -12, full: 342, cutY: 300, n: 16, x0: 162, gap: 6 };
-const HAIR_TONES = ["#3A2B22", "#6B5140", "#2E231C", "#5B4434"];
-const AIR_LINES = [
-  "M 146 166 C 190 158 230 172 290 162 S 360 170 410 160",
-  "M 146 174 C 196 168 240 180 300 172 S 370 178 410 172",
-  "M 146 182 C 186 178 236 188 296 182 S 366 186 410 182",
-  "M 146 190 C 192 190 238 198 300 192 S 368 196 410 194",
-  "M 146 198 C 188 202 232 208 292 204 S 360 208 410 208",
+const SHOWCASE = [
+  { key: "scissors", n: "01", name: "Ножницы", spec: "6″ · сталь 440C" },
+  { key: "comb", n: "02", name: "Гребень", spec: "22 см · ацетат" },
+  { key: "dryer", n: "03", name: "Фен", spec: "2200 Вт · 2 скорости" },
 ];
-const FLOOR_CLIPPINGS = Array.from({ length: 16 }, (_, i) => {
-  const rand = mulberry32(i + 101);
-  const x = 140 + rand() * 150;
-  const y = 446 + rand() * 40;
-  const a = (rand() - 0.5) * 2;
-  const l = 5 + rand() * 8;
-  return {
-    d: `M ${x.toFixed(1)} ${y.toFixed(1)} q ${(l / 2).toFixed(1)} ${(a * 4).toFixed(1)} ${l.toFixed(1)} ${(a * 2).toFixed(1)}`,
-    tone: HAIR_TONES[i % 4],
+const SHOW_HOLD = 3.6; // секунд на один инструмент
+
+/** Цвет из макета (sRGB) → линейное пространство, в котором считает освещение Three.js r128. */
+const srgb = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+
+function canvasTexture(w, h, draw) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const tex = new THREE.CanvasTexture(c);
+  tex.encoding = THREE.sRGBEncoding;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/** Студийное окружение для отражений: светлые стены и три софтбокса. */
+function studioEnvironment(renderer) {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = new THREE.Scene();
+  env.add(new THREE.Mesh(new THREE.BoxGeometry(12, 12, 12), new THREE.MeshBasicMaterial({ color: 0x8e9692, side: THREE.BackSide })));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshBasicMaterial({ color: 0x2c3330 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -5.9;
+  env.add(floor);
+  const softbox = (w, h, pos, k) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k, k), side: THREE.DoubleSide }));
+    m.position.set(...pos);
+    m.lookAt(0, 0, 0);
+    env.add(m);
   };
-});
-const COMB_TEETH = Array.from({ length: 26 }, (_, i) => 151 + i * 4.6);
-
-const ringPath = (cx, cy, r1, r2) =>
-  `M ${cx - r1} ${cy} a ${r1} ${r1} 0 1 0 ${r1 * 2} 0 a ${r1} ${r1} 0 1 0 ${-r1 * 2} 0 Z ` +
-  `M ${cx - r2} ${cy} a ${r2} ${r2} 0 1 0 ${r2 * 2} 0 a ${r2} ${r2} 0 1 0 ${-r2 * 2} 0 Z`;
-
-function smoothPath(pts) {
-  if (!pts || pts.length < 2) return "";
-  let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-  for (let i = 1; i < pts.length - 1; i += 1) {
-    const mx = (pts[i][0] + pts[i + 1][0]) / 2;
-    const my = (pts[i][1] + pts[i + 1][1]) / 2;
-    d += ` Q ${pts[i][0].toFixed(1)} ${pts[i][1].toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
-  }
-  const last = pts[pts.length - 1];
-  return `${d} L ${last[0].toFixed(1)} ${last[1].toFixed(1)}`;
+  softbox(5, 3, [0, 5.5, 1], 5);
+  softbox(3, 5, [-5.5, 1, 2], 2.6);
+  softbox(3, 5, [5.5, 0.5, -1], 2);
+  softbox(6, 1, [0, 0, -5.5], 1.4);
+  const tex = pmrem.fromScene(env, 0.03).texture;
+  pmrem.dispose();
+  return tex;
 }
 
-/** Точки одного волоса: волна гасится там, где уже прошёл гребень, кончики сносит потоком фена. */
-function strandPoints(i, t, st, fromY, toY) {
-  const x = HAIR.x0 + i * HAIR.gap;
-  const phase = i * 1.7;
-  const steps = Math.max(2, Math.ceil((toY - fromY) / 9));
-  const pts = [];
-  for (let s = 0; s <= steps; s += 1) {
-    const y = fromY + ((toY - fromY) * s) / steps;
-    const k = clamp((y - HAIR.y0) / HAIR.full, 0, 1);
-    const combed = clamp((st.combY + 12 - y) / 44, 0, 1) * (1 - st.relax);
-    const amp = 5.5 * (1 - 0.9 * combed) * Math.min(1, 0.25 + k * 2);
-    const wave = amp * Math.sin(y * 0.048 + phase + t * 0.6);
-    const sway = (st.air + st.boost) * Math.pow(k, 1.5) * (13 + 5 * Math.sin(t * 7 + i * 1.3));
-    pts.push([x + wave + sway, y]);
-  }
-  return pts;
+function buildScissors() {
+  const steel = new THREE.MeshStandardMaterial({ color: srgb(0xe3e7e5), metalness: 1, roughness: 0.18 });
+  const satin = new THREE.MeshStandardMaterial({ color: srgb(0xaab2ae), metalness: 1, roughness: 0.34 });
+  const bladeShape = new THREE.Shape();
+  bladeShape.moveTo(-0.14, -0.035);
+  bladeShape.lineTo(-0.14, 0.07);
+  bladeShape.quadraticCurveTo(0.5, 0.115, 1.0, 0.075);
+  bladeShape.quadraticCurveTo(1.35, 0.045, 1.56, 0.0);
+  bladeShape.quadraticCurveTo(1.2, -0.015, 0.6, -0.035);
+  bladeShape.lineTo(-0.14, -0.035);
+  const ex = { depth: 0.028, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 24 };
+  const tube = (pts, r, mat) =>
+    new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), 32, r, 12, false), mat);
+
+  // половинка ножниц: лезвие с одной стороны оси, кольцо — с другой
+  const half = (sign, z, ring) => {
+    const g = new THREE.Group();
+    const geo = new THREE.ExtrudeGeometry(bladeShape, ex);
+    geo.translate(0, 0, -ex.depth / 2);
+    const blade = new THREE.Mesh(geo, steel);
+    blade.scale.y = sign;
+    g.add(blade);
+    const edge = [ring.x + ring.r * 0.92, -sign * (Math.abs(ring.y) - ring.r * 0.4)];
+    g.add(tube([[-0.1, -sign * 0.01, 0], [-0.3, -sign * 0.1, 0], edge.concat(0)], 0.03, satin));
+    const torus = new THREE.Mesh(new THREE.TorusGeometry(ring.r, 0.034, 16, 56), satin);
+    torus.position.set(ring.x, -sign * Math.abs(ring.y), 0);
+    g.add(torus);
+    if (ring.rest) {
+      g.add(
+        tube(
+          [
+            [ring.x - 0.08, -sign * (Math.abs(ring.y) + ring.r * 0.9), 0],
+            [ring.x - 0.22, -sign * (Math.abs(ring.y) + 0.3), 0],
+            [ring.x - 0.36, -sign * (Math.abs(ring.y) + 0.34), 0],
+          ],
+          0.022,
+          satin,
+        ),
+      );
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 12), satin);
+      tip.position.set(ring.x - 0.36, -sign * (Math.abs(ring.y) + 0.34), 0);
+      g.add(tip);
+    }
+    g.position.z = z;
+    return g;
+  };
+  const a = half(1, 0.018, { x: -0.72, y: 0.3, r: 0.17, rest: true });
+  const b = half(-1, -0.018, { x: -0.68, y: 0.28, r: 0.14 });
+  const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.1, 24), satin);
+  screw.rotation.x = Math.PI / 2;
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.012, 0.012), new THREE.MeshStandardMaterial({ color: srgb(0x2a312e) }));
+  slot.position.z = 0.051;
+
+  const inner = new THREE.Group();
+  inner.add(a, b, screw, slot);
+  inner.position.x = -0.22;
+  const tilt = new THREE.Group();
+  tilt.add(inner);
+  tilt.rotation.z = 0.55;
+  tilt.scale.setScalar(1.2);
+  const snip = (deg) => {
+    const r = THREE.MathUtils.degToRad(deg / 2);
+    a.rotation.z = r;
+    b.rotation.z = -r;
+  };
+  snip(10);
+  return { object: tilt, tiltX: 0.25, snip };
 }
 
-/** Правая половина героя: живая сцена с инструментами, слои двигаются с разной глубиной. */
-function ToolsPanel({ ready, progress }) {
-  const ref = useRef(null);
+function buildComb() {
+  const tortoise = canvasTexture(512, 256, (ctx, w, h) => {
+    ctx.fillStyle = "#8A5636";
+    ctx.fillRect(0, 0, w, h);
+    const rand = mulberry32(77);
+    for (let i = 0; i < 70; i += 1) {
+      const x = rand() * w;
+      const y = rand() * h;
+      const r = 10 + rand() * 46;
+      const dark = rand() > 0.4;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, dark ? "rgba(52,24,10,0.75)" : "rgba(214,150,86,0.6)");
+      g.addColorStop(1, dark ? "rgba(52,24,10,0)" : "rgba(214,150,86,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r * 1.6, r, rand() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+  tortoise.wrapS = THREE.RepeatWrapping;
+  tortoise.wrapT = THREE.RepeatWrapping;
+  tortoise.repeat.set(0.42, 1.1);
+  const acetate = new THREE.MeshPhysicalMaterial({ map: tortoise, roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.1 });
+
+  const W = 2.4;
+  const top = 0.3;
+  const base = -0.02;
+  const tipY = -0.44;
+  const s = new THREE.Shape();
+  s.moveTo(-W / 2, base);
+  s.lineTo(-W / 2, top - 0.08);
+  s.quadraticCurveTo(-W / 2, top, -W / 2 + 0.08, top);
+  s.lineTo(W / 2 - 0.08, top);
+  s.quadraticCurveTo(W / 2, top, W / 2, top - 0.08);
+  s.lineTo(W / 2, tipY + 0.02);
+  s.lineTo(W / 2 - 0.06, tipY);
+  let x = W / 2 - 0.06;
+  // справа частые зубья, слева редкие — как у настоящего гребня для стрижки
+  while (x > -W / 2 + 0.2) {
+    const fine = x > 0;
+    const gap = fine ? 0.036 : 0.07;
+    const tw = fine ? 0.03 : 0.046;
+    s.lineTo(x, base);
+    s.lineTo(x - gap, base);
+    s.lineTo(x - gap, tipY + 0.025);
+    s.quadraticCurveTo(x - gap - tw / 2, tipY - 0.012, x - gap - tw, tipY + 0.025);
+    x -= gap + tw;
+  }
+  s.lineTo(x, base);
+  s.lineTo(-W / 2 + 0.06, base);
+  s.lineTo(-W / 2 + 0.06, tipY);
+  s.lineTo(-W / 2, tipY + 0.02);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 2, curveSegments: 6 });
+  geo.translate(0, 0.07, -0.025);
+  const tilt = new THREE.Group();
+  tilt.add(new THREE.Mesh(geo, acetate));
+  tilt.rotation.z = -0.14;
+  return { object: tilt, tiltX: 0.38 };
+}
+
+function buildDryer() {
+  const shell = new THREE.MeshPhysicalMaterial({ color: srgb(0x2e5e4e), roughness: 0.34, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.2 });
+  const graphite = new THREE.MeshStandardMaterial({ color: srgb(0x252d2a), roughness: 0.42, metalness: 0.25 });
+  const chrome = new THREE.MeshStandardMaterial({ color: srgb(0xe6e9e7), metalness: 1, roughness: 0.16 });
+  const rubber = new THREE.MeshStandardMaterial({ color: srgb(0x1d2622), roughness: 0.75 });
+  const v2 = (pts) => pts.map(([r, y]) => new THREE.Vector2(r, y));
+
+  // корпус и сопло — тела вращения вдоль оси Y; потом кладём их на бок соплом вправо
+  const barrel = new THREE.Group();
+  barrel.add(
+    new THREE.Mesh(
+      new THREE.LatheGeometry(
+        v2([
+          [0, -1],
+          [0.3, -1],
+          [0.42, -0.98],
+          [0.48, -0.93],
+          [0.5, -0.85],
+          [0.5, 0.25],
+          [0.48, 0.36],
+          [0.43, 0.44],
+        ]),
+        64,
+      ),
+      shell,
+    ),
+  );
+  barrel.add(
+    new THREE.Mesh(
+      new THREE.LatheGeometry(
+        v2([
+          [0.43, 0.42],
+          [0.4, 0.55],
+          [0.33, 0.8],
+          [0.3, 0.98],
+          [0.27, 1.02],
+          [0.2, 1.02],
+          [0.02, 1.0],
+        ]),
+        64,
+      ),
+      graphite,
+    ),
+  );
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.026, 12, 64), chrome);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = -0.97;
+  barrel.add(ring);
+  const grillTex = canvasTexture(256, 256, (ctx, w) => {
+    ctx.fillStyle = "#2a322f";
+    ctx.fillRect(0, 0, w, w);
+    ctx.strokeStyle = "#0f1412";
+    ctx.lineWidth = 6;
+    for (let i = 0; i < 36; i += 1) {
+      const t = (i / 36) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 + Math.cos(t) * 30, w / 2 + Math.sin(t) * 30);
+      ctx.lineTo(w / 2 + Math.cos(t) * 112, w / 2 + Math.sin(t) * 112);
+      ctx.stroke();
+    }
+  });
+  const grill = new THREE.Mesh(new THREE.CircleGeometry(0.42, 48), new THREE.MeshStandardMaterial({ map: grillTex, roughness: 0.6 }));
+  grill.rotation.x = Math.PI / 2;
+  grill.position.y = -1.002;
+  barrel.add(grill);
+  const drawLogo = (ctx, w, h) => {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = "rgba(247,247,243,0.9)";
+    ctx.font = "700 92px 'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("ONIX", 0, 0);
+  };
+  const logoTex = canvasTexture(256, 512, drawLogo);
+  document.fonts?.load("700 92px 'Sofia Sans Extra Condensed'").then(() => {
+    drawLogo(logoTex.image.getContext("2d"), 256, 512);
+    logoTex.needsUpdate = true;
+  });
+  const logo = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.503, 0.503, 0.6, 24, 1, true, -0.45, 0.9),
+    new THREE.MeshStandardMaterial({ map: logoTex, transparent: true, roughness: 0.4, depthWrite: false }),
+  );
+  logo.position.y = -0.3;
+  barrel.add(logo);
+  barrel.rotation.z = -Math.PI / 2;
+
+  const hs = new THREE.Shape();
+  const hw = 0.18;
+  const r = 0.14;
+  hs.moveTo(-hw, -0.15);
+  hs.lineTo(-hw, -1.42 + r);
+  hs.quadraticCurveTo(-hw, -1.42, -hw + r, -1.42);
+  hs.lineTo(hw - r, -1.42);
+  hs.quadraticCurveTo(hw, -1.42, hw, -1.42 + r);
+  hs.lineTo(hw, -0.15);
+  const hGeo = new THREE.ExtrudeGeometry(hs, { depth: 0.24, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 4, curveSegments: 12 });
+  hGeo.translate(0, 0, -0.12);
+  const handle = new THREE.Mesh(hGeo, shell);
+  handle.position.x = -0.12;
+  handle.rotation.z = -0.12;
+  const button = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.24, 0.05), new THREE.MeshStandardMaterial({ color: srgb(0xf2f2ee), roughness: 0.4 }));
+  button.position.set(0, -0.55, 0.17);
+  handle.add(button);
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 12), new THREE.MeshBasicMaterial({ color: srgb(0x5fd39a) }));
+  led.position.set(0, -0.8, 0.17);
+  handle.add(led);
+  const relief = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.24, 16), rubber);
+  relief.position.set(0, -1.55, 0);
+  handle.add(relief);
+  const cable = new THREE.Mesh(
+    new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(
+        [
+          [0, -1.62, 0],
+          [0.02, -1.85, 0.06],
+          [-0.18, -2.02, 0.18],
+          [-0.5, -2.05, 0.12],
+        ].map((p) => new THREE.Vector3(...p)),
+      ),
+      40,
+      0.034,
+      10,
+      false,
+    ),
+    rubber,
+  );
+  handle.add(cable);
+
+  const body = new THREE.Group();
+  body.add(barrel, handle);
+  body.position.y = 0.72;
+  body.scale.setScalar(0.92);
+  return { object: body, tiltX: 0.12 };
+}
+
+/** Правая половина героя: ножницы → гребень → фен, каждый крутится в 3D. */
+function ToolsShowcase({ ready, progress }) {
+  const wrapRef = useRef(null);
+  const canvasRef = useRef(null);
+  const api = useRef(null);
   const reduced = useReducedMotion();
-  const visible = useInView(ref, { amount: 0 });
-  const visibleRef = useRef(false);
-  visibleRef.current = visible;
+  const visible = useInView(wrapRef, { amount: 0 });
+  const [active, setActive] = useState(0);
+  const [cycle, setCycle] = useState(0);
+  const [webgl, setWebgl] = useState(true);
 
-  const st = useRef({ combY: -60, combOpacity: 0, len: HAIR.full, relax: 0, fall: 1, open: 26, air: 1, boost: 0 }).current;
-  const clock = useRef(0);
-  const tlRef = useRef(null);
-  const strandRefs = useRef([]);
-  const clipRefs = useRef([]);
-  const airRefs = useRef([]);
-  const combRef = useRef(null);
-  const dryerRef = useRef(null);
-  const pieceA = useRef(null);
-  const pieceB = useRef(null);
-
-  // наклон панели и глубина слоёв за курсором
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);
   const srx = useSpring(rx, { stiffness: 100, damping: 15 });
   const sry = useSpring(ry, { stiffness: 100, damping: 15 });
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const smx = useSpring(mx, { stiffness: 60, damping: 16 });
-  const smy = useSpring(my, { stiffness: 60, damping: 16 });
-  const dryerX = useTransform([progress, smx], ([p, m]) => p * -30 + m * -16);
-  const dryerY = useTransform([progress, smy], ([p, m]) => p * -10 + m * -10);
-  const hairX = useTransform(smx, (m) => m * 6);
-  const hairY = useTransform([progress, smy], ([p, m]) => p * -14 + m * 4);
-  const scissorsX = useTransform([progress, smx], ([p, m]) => p * 24 + m * 20);
-  const scissorsY = useTransform([progress, smy], ([p, m]) => p * -10 + m * 14);
 
-  const render = useCallback(() => {
-    const t = clock.current;
-    const end = HAIR.y0 + st.len;
-    strandRefs.current.forEach((el, i) => el?.setAttribute("d", smoothPath(strandPoints(i, t, st, HAIR.y0, end))));
-    const fall = st.fall;
-    clipRefs.current.forEach((el, i) => {
-      if (!el) return;
-      const dx = fall * (8 + (i - HAIR.n / 2) * 0.8);
-      const dy = fall * fall * 150;
-      el.setAttribute(
-        "transform",
-        `translate(${dx.toFixed(1)} ${dy.toFixed(1)}) rotate(${(fall * (i % 2 ? 11 : -8)).toFixed(1)} ${HAIR.x0 + i * HAIR.gap} ${HAIR.cutY})`,
-      );
-      el.setAttribute("opacity", (1 - fall).toFixed(2));
-    });
-    combRef.current?.setAttribute("transform", `translate(0 ${st.combY.toFixed(1)})`);
-    combRef.current?.setAttribute("opacity", st.combOpacity.toFixed(2));
-    const power = st.air + st.boost;
-    airRefs.current.forEach((el, i) => {
-      if (!el) return;
-      el.setAttribute("stroke-dashoffset", (-(t * 70 * power) - i * 9).toFixed(1));
-      el.setAttribute("opacity", (0.16 + 0.1 * st.boost).toFixed(2));
-    });
-    dryerRef.current?.setAttribute("transform", `translate(0 ${(Math.sin(t * 55) * 0.35 * power).toFixed(2)})`);
-    pieceA.current?.setAttribute("transform", `rotate(${(st.open / 2).toFixed(2)})`);
-    pieceB.current?.setAttribute("transform", `rotate(${(-st.open / 2).toFixed(2)})`);
-  }, [st]);
-
-  useAnimationFrame((time) => {
-    if (!visibleRef.current || reduced) return;
-    clock.current = time / 1000;
-    render();
-  });
-
-  // статичный кадр без анимации
+  // сцена создаётся один раз
   useEffect(() => {
-    if (!reduced) return;
-    Object.assign(st, { combY: 150, combOpacity: 1, len: HAIR.full, relax: 0, fall: 1, open: 20, boost: 0 });
-    render();
-  }, [reduced, render, st]);
+    const canvas = canvasRef.current;
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+    } catch {
+      setWebgl(false);
+      return undefined;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
 
-  // цикл: гребень проходит прядь → ножницы срезают кончики → волосы снова отрастают
-  useIsoLayoutEffect(() => {
-    if (!ready || reduced) return undefined;
-    const snip = () => {
-      const end = HAIR.y0 + st.len;
-      clipRefs.current.forEach((el, i) => el?.setAttribute("d", smoothPath(strandPoints(i, clock.current, st, HAIR.cutY, end))));
-      st.len = HAIR.cutY - HAIR.y0;
+    const scene = new THREE.Scene();
+    scene.environment = studioEnvironment(renderer);
+    const camera = new THREE.PerspectiveCamera(30, 0.8, 0.1, 50);
+    camera.position.set(0, 0.25, 7.2);
+    camera.lookAt(0, 0, 0);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xcfd6cf, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
+    key.position.set(3, 5, 4);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0xdfeee6, 0.55);
+    rim.position.set(-4, 2, -3);
+    scene.add(rim);
+
+    const shadowTex = canvasTexture(256, 256, (ctx, w) => {
+      const g = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+      g.addColorStop(0, "rgba(29,38,34,0.42)");
+      g.addColorStop(1, "rgba(29,38,34,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, w);
+    });
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.1), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = -1.55;
+    scene.add(shadow);
+
+    const tools = [buildScissors(), buildComb(), buildDryer()].map((t) => {
+      const spin = new THREE.Group();
+      spin.rotation.order = "YXZ";
+      spin.add(t.object);
+      spin.scale.setScalar(0.001);
+      spin.visible = false;
+      scene.add(spin);
+      return { ...t, spin, extra: { v: 0 }, pos: { y: -0.6 } };
+    });
+
+    // компилируем шейдеры заранее, пока идёт заставка, чтобы смена инструментов не дёргалась
+    tools.forEach((tool) => (tool.spin.visible = true));
+    renderer.compile(scene, camera);
+    tools.forEach((tool) => (tool.spin.visible = false));
+
+    const state = { current: -1, drag: 0, vel: 0, tiltX: 0, tiltY: 0, targetX: 0, targetY: 0, dragging: false, lastX: 0, timer: null, running: false };
+    let raf = 0;
+    const clock = new THREE.Clock();
+    let t = 0;
+
+    const resize = () => {
+      const { width, height } = canvas.parentElement.getBoundingClientRect();
+      if (!width || !height) return;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
     };
-    const tl = gsap.timeline({ repeat: -1, delay: 1.4 });
-    tl.set(st, { combY: -60, combOpacity: 0, len: HAIR.full, relax: 0, fall: 1, open: 26 })
-      .to(st, { combOpacity: 1, duration: 0.35 }, 0.4)
-      .to(st, { combY: 380, duration: 2.6, ease: "power1.inOut" }, 0.4)
-      .to(st, { combOpacity: 0, duration: 0.35 }, 2.65)
-      .to(st, { open: 0, duration: 0.16, ease: "power2.in", onComplete: snip }, 3.1)
-      .to(st, { open: 26, duration: 0.32, ease: "power2.out" }, 3.26)
-      .fromTo(st, { fall: 0 }, { fall: 1, duration: 1.2, ease: "power1.in", immediateRender: false }, 3.26)
-      .to(st, { open: 6, duration: 0.14, ease: "power2.in" }, 3.75)
-      .to(st, { open: 26, duration: 0.3, ease: "power2.out" }, 3.89)
-      .to(st, { relax: 1, len: HAIR.full, duration: 1.6, ease: "sine.inOut" }, 4.6)
-      .to({}, { duration: 0.6 });
-    tlRef.current = tl;
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas.parentElement);
+
+    const show = (next, { auto = false } = {}) => {
+      const prev = tools[state.current];
+      if (state.current === next) return;
+      if (prev) {
+        gsap.to(prev.spin.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 0.55, ease: "power2.in", onComplete: () => (prev.spin.visible = false) });
+        gsap.to(prev.pos, { y: 0.55, duration: 0.55, ease: "power2.in" });
+        gsap.to(prev.extra, { v: prev.extra.v + Math.PI, duration: 0.55, ease: "power2.in" });
+      }
+      const nx = tools[next];
+      gsap.killTweensOf([nx.spin.scale, nx.pos, nx.extra]);
+      nx.spin.visible = true;
+      nx.spin.scale.setScalar(0.001);
+      nx.pos.y = -0.7;
+      nx.extra.v = -Math.PI * 1.4;
+      const delay = prev ? 0.42 : 0;
+      gsap.to(nx.spin.scale, { x: 1, y: 1, z: 1, duration: 1.05, delay, ease: "back.out(1.5)" });
+      gsap.to(nx.pos, { y: 0, duration: 1.05, delay, ease: "power3.out" });
+      gsap.to(nx.extra, { v: 0, duration: 1.4, delay, ease: "power3.out" });
+      state.current = next;
+      setActive(next);
+      setCycle((c) => c + 1);
+      schedule();
+      if (!auto) state.vel = 0;
+    };
+    const schedule = () => {
+      state.timer?.kill();
+      if (reduced) return;
+      state.timer = gsap.delayedCall(SHOW_HOLD, () => show((state.current + 1) % tools.length, { auto: true }));
+    };
+
+    const frame = () => {
+      raf = requestAnimationFrame(frame);
+      if (!state.running) return;
+      const dt = Math.min(clock.getDelta(), 0.05);
+      if (!reduced) t += dt;
+      state.vel *= 0.94;
+      state.drag += state.vel;
+      state.tiltX += (state.targetX - state.tiltX) * 0.06;
+      state.tiltY += (state.targetY - state.tiltY) * 0.06;
+      const p = progress.get();
+      tools.forEach((tool, i) => {
+        if (!tool.spin.visible) return;
+        tool.spin.rotation.y = t * 0.9 + tool.extra.v + state.drag + state.tiltY + (reduced ? 0.6 : 0);
+        tool.spin.rotation.x = tool.tiltX + state.tiltX;
+        tool.spin.position.y = tool.pos.y + Math.sin(t * 1.3 + i) * 0.05 + p * 0.5;
+        if (tool.snip) tool.snip(reduced ? 14 : 4 + Math.max(0, Math.sin(t * 5.5)) * 18);
+      });
+      const s = tools.reduce((m, tool) => Math.max(m, tool.spin.visible ? tool.spin.scale.x : 0), 0);
+      shadow.scale.set(0.6 + s * 0.4, 1, 0.6 + s * 0.4);
+      shadow.material.opacity = s * (1 - p * 0.6);
+      renderer.render(scene, camera);
+    };
+    raf = requestAnimationFrame(frame);
+
+    api.current = {
+      start: () => {
+        if (state.current === -1) show(0);
+      },
+      show: (i) => show(i),
+      setRunning: (on) => {
+        state.running = on;
+        if (on) clock.getDelta();
+        if (state.timer) on ? state.timer.resume() : state.timer.pause();
+      },
+      pointer: (px, py) => {
+        state.targetX = py * 0.35;
+        state.targetY = px * 0.6;
+      },
+      dragStart: (x) => {
+        state.dragging = true;
+        state.lastX = x;
+        state.timer?.pause();
+      },
+      dragMove: (x) => {
+        if (!state.dragging) return;
+        state.vel += (x - state.lastX) * 0.0016;
+        state.lastX = x;
+      },
+      dragEnd: () => {
+        if (!state.dragging) return;
+        state.dragging = false;
+        schedule();
+      },
+    };
+
     return () => {
-      tl.kill();
-      tlRef.current = null;
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      state.timer?.kill();
+      tools.forEach((tool) => gsap.killTweensOf([tool.spin.scale, tool.pos, tool.extra]));
+      scene.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          if (o.material.map) o.material.map.dispose();
+          o.material.dispose();
+        }
+      });
+      scene.environment?.dispose();
+      renderer.dispose();
+      api.current = null;
     };
-  }, [ready, reduced, st]);
+  }, [progress, reduced]);
 
   useEffect(() => {
-    const tl = tlRef.current;
-    if (!tl) return;
-    if (visible) tl.resume();
-    else tl.pause();
+    if (ready) api.current?.start();
+  }, [ready]);
+
+  useEffect(() => {
+    api.current?.setRunning(visible);
   }, [visible]);
 
-  const enter = (d, from) => ({
-    initial: { opacity: 0, ...from },
-    animate: ready ? { opacity: 1, x: 0, y: 0 } : undefined,
-    transition: { type: "spring", stiffness: 55, damping: 14, delay: d },
-  });
   const lateIn = (d) => ({
     initial: { opacity: 0, y: 16 },
     animate: ready ? { opacity: 1, y: 0 } : undefined,
     transition: { type: "spring", stiffness: 80, damping: 16, delay: d },
   });
+  const tool = SHOWCASE[active];
 
   return (
     <motion.div
-      ref={ref}
+      ref={wrapRef}
       onPointerMove={(e) => {
-        if (e.pointerType !== "mouse") return;
-        const r = ref.current.getBoundingClientRect();
+        const r = wrapRef.current.getBoundingClientRect();
         const px = (e.clientX - r.left) / r.width - 0.5;
         const py = (e.clientY - r.top) / r.height - 0.5;
-        ry.set(px * 10);
-        rx.set(-py * 8);
-        mx.set(px);
-        my.set(py);
-      }}
-      onPointerEnter={() => {
-        gsap.to(st, { boost: 1.3, duration: 0.6, ease: "power2.out" });
-        if (tlRef.current) gsap.to(tlRef.current, { timeScale: 1.5, duration: 0.6 });
+        if (e.pointerType === "mouse") {
+          ry.set(px * 8);
+          rx.set(-py * 6);
+          api.current?.pointer(px, py);
+        }
+        api.current?.dragMove(e.clientX);
       }}
       onPointerLeave={() => {
         rx.set(0);
         ry.set(0);
-        mx.set(0);
-        my.set(0);
-        gsap.to(st, { boost: 0, duration: 0.9, ease: "power2.out" });
-        if (tlRef.current) gsap.to(tlRef.current, { timeScale: 1, duration: 0.9 });
+        api.current?.pointer(0, 0);
+        api.current?.dragEnd();
       }}
       style={{ rotateX: srx, rotateY: sry, transformPerspective: 1400 }}
       className="relative mx-auto aspect-[4/5] w-full max-w-[540px] lg:ml-auto lg:mr-0"
     >
       <motion.div
-        className="absolute inset-0 overflow-hidden border border-[#1D2622]/15 bg-[#F4F5F1] shadow-[0_40px_80px_-40px_rgba(29,38,34,0.35)]"
+        className="absolute inset-0 overflow-hidden border border-[#1D2622]/15 bg-[radial-gradient(ellipse_at_50%_38%,#FFFFFF_0%,#F2F3EF_42%,#DFE3DD_100%)] shadow-[0_40px_80px_-40px_rgba(29,38,34,0.35)]"
         initial={{ clipPath: "inset(100% 0% 0% 0%)" }}
         animate={ready ? { clipPath: "inset(0% 0% 0% 0%)" } : undefined}
         transition={{ duration: 1.1, ease: EASE_CUT, delay: 0.1 }}
       >
-        <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden="true">
-          <rect width="400" height="500" fill="url(#gr-tiles)" />
-          <rect width="400" height="500" fill="url(#gr-light)" />
-          <rect y="430" width="400" height="70" fill="#E4E7E1" />
-          <line x1="0" y1="430.5" x2="400" y2="430.5" stroke="#1D2622" strokeOpacity="0.12" />
-          <g strokeWidth="1.1" strokeLinecap="round" fill="none">
-            {FLOOR_CLIPPINGS.map((c, i) => (
-              <path key={i} d={c.d} stroke={c.tone} strokeOpacity="0.5" />
+        <div
+          className="absolute inset-0 cursor-grab touch-pan-y active:cursor-grabbing"
+          data-cursor="drag"
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture?.(e.pointerId);
+            api.current?.dragStart(e.clientX);
+          }}
+          onPointerUp={() => api.current?.dragEnd()}
+          onPointerCancel={() => api.current?.dragEnd()}
+        >
+          <canvas ref={canvasRef} className="block h-full w-full" aria-label={`3D-модель: ${tool.name}`} role="img" />
+        </div>
+        {webgl ? null : (
+          <div className="f-display absolute inset-0 grid place-items-center text-6xl font-extrabold uppercase text-[#1D2622]/25">{tool.name}</div>
+        )}
+
+        <motion.div
+          {...lateIn(1.0)}
+          className="f-label pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-4 text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/65"
+        >
+          <span>Инструменты мастера</span>
+          <span className="inline-flex items-center gap-2 text-[#2E5E4E]">
+            <Rotate3d size={14} strokeWidth={1.6} />
+            Покрутите
+          </span>
+        </motion.div>
+
+        <motion.div {...lateIn(1.2)} className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
+          <div className="min-w-0">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={tool.key}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ type: "spring", stiffness: 160, damping: 20 }}
+              >
+                <span className="f-label block text-[11px] uppercase tracking-[0.22em] text-[#2E5E4E]">{tool.n} / 03</span>
+                <span className="f-display block text-5xl font-extrabold uppercase leading-none text-[#1D2622]">{tool.name}</span>
+                <span className="f-label mt-1 block text-[12px] uppercase tracking-[0.16em] text-[#1D2622]/60">{tool.spec}</span>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <div className="pointer-events-auto flex shrink-0 gap-2 pb-1">
+            {SHOWCASE.map((t, i) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => api.current?.show(i)}
+                aria-label={`Показать: ${t.name}`}
+                aria-pressed={active === i}
+                className="relative h-1.5 w-9 overflow-hidden bg-[#1D2622]/15"
+              >
+                {active === i ? (
+                  <motion.span
+                    key={cycle}
+                    className="absolute inset-0 origin-left bg-[#2E5E4E]"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: reduced ? 0 : SHOW_HOLD + 0.3, ease: "linear" }}
+                  />
+                ) : null}
+              </button>
             ))}
-          </g>
-
-          {/* прядь и гребень */}
-          <motion.g style={{ x: hairX, y: hairY }}>
-            <motion.g {...enter(0.45, { y: -50 })}>
-              <g strokeLinecap="round" fill="none">
-                {Array.from({ length: HAIR.n }, (_, i) => (
-                  <path
-                    key={`clip-${i}`}
-                    ref={(el) => {
-                      clipRefs.current[i] = el;
-                    }}
-                    stroke={HAIR_TONES[i % 4]}
-                    strokeWidth={i % 2 ? 1.2 : 2.1}
-                    opacity="0"
-                  />
-                ))}
-                {Array.from({ length: HAIR.n }, (_, i) => (
-                  <path
-                    key={`hair-${i}`}
-                    ref={(el) => {
-                      strandRefs.current[i] = el;
-                    }}
-                    stroke={HAIR_TONES[i % 4]}
-                    strokeWidth={i % 2 ? 1.2 : 2.1}
-                  />
-                ))}
-              </g>
-              <g ref={combRef} opacity="0" filter="url(#gr-shadow)">
-                <rect x="146" y="-42" width="128" height="22" rx="7" fill="url(#gr-tortoise)" />
-                {COMB_TEETH.map((x) => (
-                  <rect key={x} x={x} y="-22" width="2.4" height="34" rx="1.2" fill="url(#gr-tortoise)" />
-                ))}
-                <ellipse cx="178" cy="-31" rx="9" ry="4" fill="#4A2814" fillOpacity="0.35" />
-                <ellipse cx="226" cy="-29" rx="12" ry="5" fill="#4A2814" fillOpacity="0.3" />
-                <ellipse cx="256" cy="-33" rx="6" ry="3" fill="#4A2814" fillOpacity="0.35" />
-                <rect x="152" y="-39" width="116" height="3" rx="1.5" fill="#FFFFFF" fillOpacity="0.28" />
-              </g>
-            </motion.g>
-          </motion.g>
-
-          {/* фен */}
-          <motion.g style={{ x: dryerX, y: dryerY }}>
-            <motion.g {...enter(0.7, { x: -90 })}>
-              <g strokeLinecap="round" fill="none" stroke="#1D2622" strokeWidth="1.4" strokeDasharray="10 14">
-                {AIR_LINES.map((d, i) => (
-                  <path
-                    key={d}
-                    d={d}
-                    ref={(el) => {
-                      airRefs.current[i] = el;
-                    }}
-                    opacity="0.16"
-                  />
-                ))}
-              </g>
-              <g ref={dryerRef} filter="url(#gr-shadow)">
-                <path d="M 50 304 C 50 342 18 352 12 398 S 32 470 -12 510" fill="none" stroke="#1D2622" strokeWidth="3.2" strokeLinecap="round" />
-                <path d="M 44 206 L 70 206 L 64 296 Q 63 304 55 304 L 47 304 Q 39 304 39 296 Z" fill="url(#gr-dryer)" />
-                <rect x="49" y="222" width="12" height="24" rx="4" fill="#F7F7F3" fillOpacity="0.9" />
-                <circle cx="55" cy="256" r="2.2" fill="#8FE0B6" />
-                <rect x="18" y="150" width="88" height="60" rx="12" fill="url(#gr-dryer)" />
-                <rect x="28" y="156" width="66" height="6" rx="3" fill="#FFFFFF" fillOpacity="0.25" />
-                <ellipse cx="20" cy="180" rx="10" ry="30" fill="#22473B" />
-                <g stroke="#F7F7F3" strokeOpacity="0.35" strokeWidth="1">
-                  <line x1="16" y1="164" x2="16" y2="196" />
-                  <line x1="20" y1="158" x2="20" y2="202" />
-                  <line x1="24" y1="164" x2="24" y2="196" />
-                </g>
-                <path d="M 104 158 L 136 166 Q 141 167 141 172 V 188 Q 141 193 136 194 L 104 202 Z" fill="url(#gr-nozzle)" />
-                <text x="44" y="189" className="f-label" fontSize="9" letterSpacing="2" fill="#F7F7F3" fillOpacity="0.75">
-                  ONIX
-                </text>
-              </g>
-              <text x="18" y="138" className="f-label" fontSize="9" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.55">
-                ФЕН · 2200 ВТ
-              </text>
-            </motion.g>
-          </motion.g>
-
-          {/* ножницы */}
-          <motion.g style={{ x: scissorsX, y: scissorsY }}>
-            <motion.g {...enter(0.95, { x: 90 })}>
-              <g transform={`translate(300 ${HAIR.cutY})`} filter="url(#gr-shadow)">
-                <g ref={pieceB}>
-                  <path
-                    d="M 12 7 C -40 8 -112 5 -154 0 C -112 -1 -40 -3 12 -4 Z"
-                    fill="url(#gr-steel)"
-                    stroke="#1D2622"
-                    strokeOpacity="0.45"
-                    strokeWidth="0.8"
-                  />
-                  <path d="M 8 -3 C 22 -8 30 -14 38 -20" fill="none" stroke="#A3AAA6" strokeWidth="7" strokeLinecap="round" />
-                  <path d={ringPath(50, -27, 14, 9)} fill="#A3AAA6" fillRule="evenodd" stroke="#1D2622" strokeOpacity="0.4" strokeWidth="0.8" />
-                </g>
-                <g ref={pieceA}>
-                  <path
-                    d="M 12 -7 C -40 -8 -112 -5 -154 0 C -112 1 -40 3 12 4 Z"
-                    fill="url(#gr-steel)"
-                    stroke="#1D2622"
-                    strokeOpacity="0.45"
-                    strokeWidth="0.8"
-                  />
-                  <path d="M 8 3 C 22 8 32 16 40 24" fill="none" stroke="#A3AAA6" strokeWidth="7" strokeLinecap="round" />
-                  <path d={ringPath(54, 32, 16, 10)} fill="#A3AAA6" fillRule="evenodd" stroke="#1D2622" strokeOpacity="0.4" strokeWidth="0.8" />
-                  <path d="M 44 46 q -2 14 10 20" fill="none" stroke="#A3AAA6" strokeWidth="5" strokeLinecap="round" />
-                </g>
-                <circle r="6" fill="url(#gr-nickel)" stroke="#1D2622" strokeOpacity="0.5" strokeWidth="0.8" />
-                <line x1="-3.5" y1="0" x2="3.5" y2="0" stroke="#1D2622" strokeOpacity="0.6" strokeWidth="1" />
-              </g>
-              <text x="318" y="392" textAnchor="middle" className="f-label" fontSize="9" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.55">
-                НОЖНИЦЫ · 6″
-              </text>
-            </motion.g>
-          </motion.g>
-
-          <text x="388" y="58" textAnchor="end" className="f-label" fontSize="9" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.55">
-            ГРЕБЕНЬ · 22 СМ
-          </text>
-        </svg>
+          </div>
+        </motion.div>
       </motion.div>
 
       <motion.div
-        {...lateIn(1.1)}
-        className="f-label pointer-events-none absolute inset-x-0 top-0 flex justify-between p-4 text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/65"
-      >
-        <span>Рабочее место № 1</span>
-        <span className="text-[#2E5E4E]">Кресло 1 / 6</span>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, x: -40, rotate: -8 }}
-        animate={ready ? { opacity: 1, x: 0, rotate: -3 } : undefined}
+        initial={{ opacity: 0, x: 40, rotate: 8 }}
+        animate={ready ? { opacity: 1, x: 0, rotate: 3 } : undefined}
         transition={{ type: "spring", stiffness: 60, damping: 12, delay: 1.5 }}
-        className="absolute -left-3 bottom-[6%] sm:-left-12 sm:bottom-[9%]"
+        className="absolute -right-10 top-[14%] hidden sm:block"
       >
         <motion.div
           animate={{ y: [0, -10, 0] }}
@@ -1433,7 +1646,7 @@ function Hero({ ready, onNav }) {
         </motion.div>
 
         <div className="lg:col-span-5">
-          <ToolsPanel ready={ready} progress={scrollYProgress} />
+          <ToolsShowcase ready={ready} progress={scrollYProgress} />
         </div>
       </Container>
 
@@ -2634,7 +2847,6 @@ export default function BarbershopLanding() {
     <MotionConfig reducedMotion="user">
       <GlobalStyles />
       <div className="f-body relative min-h-screen overflow-x-clip bg-[#ECEDE8] text-[#1D2622]">
-        <SvgDefs />
         <div className="grain" aria-hidden="true" />
         <AnimatePresence>{loading ? <Loader key="loader" onDone={finishLoading} /> : null}</AnimatePresence>
         <Cursor />

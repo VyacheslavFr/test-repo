@@ -1,7 +1,7 @@
 // Собирает страницу из src/BarbershopLanding.jsx:
 //  • index.html          — самостоятельный HTML-документ (открывается в браузере);
 //  • dist/artifact.html  — фрагмент без <html>/<head>/<body> для публикации как Artifact.
-// Библиотеки (React, Framer Motion, Lucide, GSAP) грузятся с CDN как UMD-глобалы,
+// Библиотеки (React, Framer Motion, Lucide, GSAP, Three.js) грузятся с CDN как UMD-глобалы,
 // а код страницы и Tailwind CSS встраиваются инлайном.
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
@@ -19,12 +19,13 @@ const GLOBALS = {
   "lucide-react": "module.exports = window.LucideReact;",
   gsap: "module.exports = window.gsap;",
   "gsap/ScrollTrigger": "module.exports = { ScrollTrigger: window.ScrollTrigger };",
+  three: "module.exports = window.THREE;",
 };
 
 const cdnGlobals = {
   name: "cdn-globals",
   setup(b) {
-    b.onResolve({ filter: /^(react|react-dom\/client|framer-motion|lucide-react|gsap|gsap\/ScrollTrigger)$/ }, (args) => ({ path: args.path, namespace: "cdn-global" }));
+    b.onResolve({ filter: /^(react|react-dom\/client|framer-motion|lucide-react|gsap|gsap\/ScrollTrigger|three)$/ }, (args) => ({ path: args.path, namespace: "cdn-global" }));
     b.onLoad({ filter: /.*/, namespace: "cdn-global" }, (args) => ({ contents: GLOBALS[args.path], loader: "js" }));
   },
 };
