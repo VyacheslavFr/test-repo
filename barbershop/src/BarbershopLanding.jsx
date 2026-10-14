@@ -43,11 +43,9 @@ import {
   Phone,
   Play,
   Plus,
-  Rotate3d,
   ScanFace,
   Scissors,
   Send,
-  Star,
   Wind,
   X,
 } from "lucide-react";
@@ -1247,11 +1245,6 @@ function ToolsShowcase({ ready, progress }) {
   const [cycle, setCycle] = useState(0);
   const [webgl, setWebgl] = useState(true);
 
-  const rx = useMotionValue(0);
-  const ry = useMotionValue(0);
-  const srx = useSpring(rx, { stiffness: 100, damping: 15 });
-  const sry = useSpring(ry, { stiffness: 100, damping: 15 });
-
   // сцена создаётся один раз
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1434,11 +1427,6 @@ function ToolsShowcase({ ready, progress }) {
     api.current?.setRunning(visible);
   }, [visible]);
 
-  const lateIn = (d) => ({
-    initial: { opacity: 0, y: 16 },
-    animate: ready ? { opacity: 1, y: 0 } : undefined,
-    transition: { type: "spring", stiffness: 80, damping: 16, delay: d },
-  });
   const tool = SHOWCASE[active];
 
   return (
@@ -1446,101 +1434,30 @@ function ToolsShowcase({ ready, progress }) {
       ref={wrapRef}
       onPointerMove={(e) => {
         const r = wrapRef.current.getBoundingClientRect();
-        const px = (e.clientX - r.left) / r.width - 0.5;
-        const py = (e.clientY - r.top) / r.height - 0.5;
-        if (e.pointerType === "mouse") {
-          ry.set(px * 8);
-          rx.set(-py * 6);
-          api.current?.pointer(px, py);
-        }
+        if (e.pointerType === "mouse") api.current?.pointer((e.clientX - r.left) / r.width - 0.5, (e.clientY - r.top) / r.height - 0.5);
         api.current?.dragMove(e.clientX);
       }}
       onPointerLeave={() => {
-        rx.set(0);
-        ry.set(0);
         api.current?.pointer(0, 0);
         api.current?.dragEnd();
       }}
-      style={{ rotateX: srx, rotateY: sry, transformPerspective: 1400 }}
-      className="relative mx-auto aspect-[4/5] w-full max-w-[540px] lg:ml-auto lg:mr-0"
+      initial={{ opacity: 0 }}
+      animate={ready ? { opacity: 1 } : undefined}
+      transition={{ duration: 0.8, delay: 0.1 }}
+      className="relative mx-auto aspect-[4/5] w-full max-w-[560px] lg:ml-auto lg:mr-0"
     >
-      <motion.div
-        className="absolute inset-0 overflow-hidden rounded-b-[36px] rounded-t-[999px] border border-white/80 bg-[radial-gradient(ellipse_at_50%_42%,#FFFFFF_0%,#F4F7F3_45%,#DCE6DF_100%)] shadow-[0_50px_90px_-50px_rgba(38,51,45,0.45)]"
-        initial={{ clipPath: "inset(100% 0% 0% 0%)" }}
-        animate={ready ? { clipPath: "inset(0% 0% 0% 0%)" } : undefined}
-        transition={{ duration: 1.1, ease: EASE_CUT, delay: 0.1 }}
+      <div
+        className="absolute inset-0 cursor-grab touch-pan-y active:cursor-grabbing"
+        data-cursor="drag"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture?.(e.pointerId);
+          api.current?.dragStart(e.clientX);
+        }}
+        onPointerUp={() => api.current?.dragEnd()}
+        onPointerCancel={() => api.current?.dragEnd()}
       >
-        <div
-          className="absolute inset-0 cursor-grab touch-pan-y active:cursor-grabbing"
-          data-cursor="drag"
-          onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture?.(e.pointerId);
-            api.current?.dragStart(e.clientX);
-          }}
-          onPointerUp={() => api.current?.dragEnd()}
-          onPointerCancel={() => api.current?.dragEnd()}
-        >
-          <canvas ref={canvasRef} className="block h-full w-full" aria-label={`3D-модель: ${tool.name}`} role="img" />
-        </div>
-        {webgl ? null : <div className="f-display absolute inset-0 grid place-items-center text-5xl italic text-[#26332D]/30">{tool.name}</div>}
-
-        <motion.div
-          {...lateIn(1.0)}
-          className="f-label pointer-events-none absolute inset-x-0 top-[11%] flex flex-col items-center gap-1.5 text-center text-[11px] uppercase tracking-[0.14em] text-[#26332D]/65"
-        >
-          <span>Инструменты мастера</span>
-          <span className="inline-flex items-center gap-1.5 normal-case tracking-normal text-[#4F7A68]">
-            <Rotate3d size={14} strokeWidth={1.6} />
-            Покрутите мышью или пальцем
-          </span>
-        </motion.div>
-
-        <motion.div {...lateIn(1.2)} className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-6">
-          <div className="pointer-events-auto flex shrink-0 gap-2">
-            {SHOWCASE.map((t, i) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => api.current?.show(i)}
-                aria-label={`Показать: ${t.name}`}
-                aria-pressed={active === i}
-                className="relative h-1.5 w-9 overflow-hidden bg-[#26332D]/15"
-              >
-                {active === i ? (
-                  <motion.span
-                    key={cycle}
-                    className="absolute inset-0 origin-left bg-[#4F7A68]"
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: reduced ? 0 : SHOW_HOLD + 0.3, ease: "linear" }}
-                  />
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, x: 40, rotate: 8 }}
-        animate={ready ? { opacity: 1, x: 0, rotate: 3 } : undefined}
-        transition={{ type: "spring", stiffness: 60, damping: 12, delay: 1.5 }}
-        className="absolute -right-10 top-[14%] hidden sm:block"
-      >
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="rounded-[22px] border border-white/80 bg-[#FAFBF8]/80 px-4 py-3 shadow-[0_30px_60px_-24px_rgba(38,51,45,0.3)] backdrop-blur-xl sm:px-5 sm:py-4"
-        >
-          <div className="flex gap-0.5 text-[#B07A55]">
-            {Array.from({ length: 5 }, (_, i) => (
-              <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
-            ))}
-          </div>
-          <div className="f-display mt-2 text-4xl font-medium leading-none sm:text-5xl">4,98</div>
-          <div className="f-label mt-1 text-[11px] uppercase tracking-[0.1em] text-[#26332D]/60">1 240 отзывов</div>
-        </motion.div>
-      </motion.div>
+        <canvas ref={canvasRef} className="block h-full w-full" aria-label={`3D-модель: ${tool.name}`} role="img" />
+      </div>
     </motion.div>
   );
 }
