@@ -273,29 +273,28 @@ function useFinePointer() {
 /* ──────────────────────── Глобальные стили ─────────────────────── */
 
 const FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Sofia+Sans+Extra+Condensed:ital,wght@0,600;0,700;0,800;1,600;1,700;1,800&family=Sofia+Sans+Semi+Condensed:wght@500;600;700&family=Golos+Text:wght@400;500;600&display=swap";
+  "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Manrope:wght@400;500;600;700&display=swap";
 
 const GRAIN =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>";
 
 const GLOBAL_CSS = `
 @import url('${FONTS_URL}');
-/* Светлая «интерьерная» гамма: штукатурка, бумага, зелёный оникс, графит, коньячная кожа. */
-:root { color-scheme: light; --stone: #ECEDE8; --paper: #F7F7F3; --ink: #1D2622; --onyx: #2E5E4E; --onyx-hi: #4E8A72; --leather: #9A6440; }
+/* Мягкая салонная гамма: шалфейный туман, бумага, эвкалипт, тёплый песок, графит. */
+:root { color-scheme: light; --stone: #EEF1EC; --paper: #FAFBF8; --ink: #26332D; --onyx: #4F7A68; --onyx-hi: #6E9A86; --leather: #B07A55; }
 html, body { background: var(--stone); color: var(--ink); }
 body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-.f-body { font-family: 'Golos Text', 'Segoe UI', system-ui, -apple-system, sans-serif; }
-.f-display { font-family: 'Sofia Sans Extra Condensed', 'Roboto Condensed', 'Arial Narrow', sans-serif; font-variant-numeric: lining-nums; }
-.f-label { font-family: 'Sofia Sans Semi Condensed', 'Roboto Condensed', 'Arial Narrow', sans-serif; font-weight: 600; }
-.stroke-text { color: transparent; -webkit-text-stroke: 1.5px rgba(46, 94, 78, 0.16); }
-.accent-text { background: linear-gradient(180deg, #4E8A72 0%, #2E5E4E 45%, #1D2622 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.grain { position: fixed; inset: -100%; width: 300%; height: 300%; z-index: 90; pointer-events: none; opacity: 0.1; mix-blend-mode: multiply; background-image: url("${GRAIN}"); animation: gr-grain 0.9s steps(5) infinite; }
+.f-body { font-family: 'Manrope', 'Segoe UI', system-ui, -apple-system, sans-serif; }
+.f-display { font-family: 'Lora', Georgia, 'Times New Roman', serif; font-variant-numeric: lining-nums; }
+.f-label { font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif; font-weight: 600; }
+.accent-text { background: linear-gradient(180deg, #6E9A86 0%, #4F7A68 45%, #26332D 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.grain { position: fixed; inset: -100%; width: 300%; height: 300%; z-index: 90; pointer-events: none; opacity: 0.05; mix-blend-mode: multiply; background-image: url("${GRAIN}"); animation: gr-grain 0.9s steps(5) infinite; }
 @keyframes gr-grain { 0% { transform: translate(0, 0) } 20% { transform: translate(-4%, 3%) } 40% { transform: translate(3%, -5%) } 60% { transform: translate(-6%, -2%) } 80% { transform: translate(5%, 4%) } 100% { transform: translate(0, 0) } }
 ::selection { background: var(--onyx); color: var(--paper); }
 :focus-visible { outline: 2px solid var(--onyx); outline-offset: 4px; }
 html.gr-cursor, html.gr-cursor * { cursor: none !important; }
 html.gr-cursor input, html.gr-cursor textarea { cursor: text !important; }
-input::placeholder { color: rgba(29, 38, 34, 0.38); }
+input::placeholder { color: rgba(38, 51, 45, 0.38); }
 @media (prefers-reduced-motion: reduce) { .grain { animation: none; } }
 `;
 
@@ -396,12 +395,12 @@ function PrimaryButton({ children, onClick, type = "button", className = "" }) {
         animate="rest"
         whileHover="hover"
         whileTap={{ scale: 0.96 }}
-        className={`f-label relative inline-flex items-center gap-3 overflow-hidden bg-[#2E5E4E] px-7 py-4 text-[13px] font-medium uppercase tracking-[0.2em] text-[#F7F7F3] shadow-[0_0_0_rgba(46,94,78,0)] ${className}`}
-        variants={{ rest: { boxShadow: "0 0 0px rgba(46,94,78,0)" }, hover: { boxShadow: "0 0 50px rgba(46,94,78,0.45)" } }}
+        className={`f-label relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-[#4F7A68] px-7 py-4 text-[13px] font-medium uppercase tracking-[0.14em] text-[#FAFBF8] shadow-[0_0_0_rgba(79,122,104,0)] ${className}`}
+        variants={{ rest: { boxShadow: "0 10px 30px -18px rgba(79,122,104,0.6)" }, hover: { boxShadow: "0 22px 50px -18px rgba(79,122,104,0.7)" } }}
       >
         <motion.span
           aria-hidden="true"
-          className="absolute inset-0 bg-[#1D2622]"
+          className="absolute inset-0 bg-[#26332D]"
           variants={{ rest: { y: "101%" }, hover: { y: "0%" } }}
           transition={{ type: "spring", stiffness: 260, damping: 28 }}
         />
@@ -424,8 +423,8 @@ function GhostButton({ children, onClick }) {
         animate="rest"
         whileHover="hover"
         whileTap={{ scale: 0.96 }}
-        variants={{ rest: { borderColor: "rgba(29,38,34,0.28)", color: "#1D2622" }, hover: { borderColor: "rgba(46,94,78,1)", color: "#2E5E4E" } }}
-        className="f-label relative inline-flex items-center gap-3 border px-7 py-4 text-[13px] uppercase tracking-[0.2em]"
+        variants={{ rest: { borderColor: "rgba(38,51,45,0.28)", color: "#26332D" }, hover: { borderColor: "rgba(79,122,104,1)", color: "#4F7A68" } }}
+        className="f-label relative inline-flex items-center gap-3 rounded-full border px-7 py-4 text-[13px] uppercase tracking-[0.14em]"
       >
         {children}
         <motion.span variants={{ rest: { y: 0 }, hover: { y: 3 } }} transition={springSnappy}>
@@ -463,132 +462,49 @@ function SectionHead({ eyebrow, title, italic, aside }) {
     <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
       <div className="lg:col-span-7">
         <Reveal y={30}>
-          <p className="f-label text-[12px] uppercase tracking-[0.22em] text-[#2E5E4E]">{eyebrow}</p>
+          <p className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">
+            <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4F7A68] align-middle" aria-hidden="true" />
+            {eyebrow}
+          </p>
         </Reveal>
-        <h2 aria-label={`${title} ${italic}`} className="f-display mt-5 text-[clamp(3.6rem,12vw,9rem)] font-extrabold uppercase leading-[0.88]">
+        <h2 aria-label={`${title} ${italic}`} className="f-display mt-5 text-[clamp(2.8rem,9vw,6.2rem)] font-medium leading-[0.98] tracking-[-0.01em]">
           <SplitLetters text={title} trigger="view" />{" "}
-          <span className="italic text-[#2E5E4E]">
+          <span className="italic text-[#4F7A68]">
             <SplitLetters text={italic} trigger="view" delay={0.18} />
           </span>
         </h2>
       </div>
       {aside ? (
         <Reveal className="lg:col-span-4 lg:col-start-9" delay={0.15} y={40}>
-          <p className="max-w-md text-[15px] leading-relaxed text-[#1D2622]/70">{aside}</p>
+          <p className="max-w-md text-[15px] leading-relaxed text-[#26332D]/70">{aside}</p>
         </Reveal>
       ) : null}
     </div>
   );
 }
 
-/* ───────────────────────── Гильоширное клеймо ───────────────────── */
+/* ───────────────────────── Мягкий портрет-заглушка ───────────────────── */
 
-/** Рисует гильош (как на банкнотах и циферблатах): уникальная розетка для каждого мастера. */
-function drawGuilloche(ctx, w, h, seed, { background = true, cyRatio = 0.44 } = {}) {
-  const rand = mulberry32(seed * 7919);
-  ctx.clearRect(0, 0, w, h);
-  const cx = w / 2;
-  const cy = h * cyRatio;
-  const R = Math.min(w, h) * (background ? 0.44 : 0.48);
+const PORTRAIT_TONES = [
+  ["#DCE6DF", "#E7D6C5", "#B9CFC2"],
+  ["#E7D6C5", "#DCE6DF", "#D3BFA9"],
+  ["#D9E4E5", "#EADFD3", "#AEC6C0"],
+  ["#EADFD3", "#D6E3D9", "#C5B19B"],
+];
 
-  if (background) {
-    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.75);
-    bg.addColorStop(0, "#F8F9F5");
-    bg.addColorStop(0.55, "#EEF1EC");
-    bg.addColorStop(1, "#E2E7E1");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, w, h);
-    // фон «гравюрой»: волнистая штриховка
-    ctx.lineWidth = 0.5;
-    ctx.strokeStyle = "rgba(46,94,78,0.08)";
-    const freq = 0.02 + rand() * 0.02;
-    for (let y = -10; y < h + 10; y += 5) {
-      ctx.beginPath();
-      for (let x = 0; x <= w; x += 6) {
-        const yy = y + Math.sin(x * freq + y * 0.045) * 2.4;
-        if (x === 0) ctx.moveTo(x, yy);
-        else ctx.lineTo(x, yy);
-      }
-      ctx.stroke();
-    }
-  }
-
-  const ink = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
-  ink.addColorStop(0, "#1D2622");
-  ink.addColorStop(0.35, "#4E8A72");
-  ink.addColorStop(0.6, "#2E5E4E");
-  ink.addColorStop(1, "#6E9C88");
-  ctx.strokeStyle = ink;
-
-  const layers = [
-    { base: 0.93, amp: 0.05, lobes: 22 + Math.floor(rand() * 10), copies: 18, k: 3, alpha: 0.4 },
-    { base: 0.66, amp: 0.15, lobes: 7 + Math.floor(rand() * 6), copies: 30, k: 2 + Math.floor(rand() * 3), alpha: 0.34 },
-    { base: 0.34, amp: 0.12, lobes: 5 + Math.floor(rand() * 4), copies: 22, k: 4, alpha: 0.3 },
-  ];
-  layers.forEach((L) => {
-    ctx.lineWidth = 0.55;
-    ctx.globalAlpha = L.alpha;
-    for (let c = 0; c < L.copies; c += 1) {
-      const rot = (c / L.copies) * ((Math.PI * 2) / L.lobes);
-      ctx.beginPath();
-      for (let i = 0; i <= 720; i += 1) {
-        const t = (i / 720) * Math.PI * 2;
-        const r = R * (L.base + L.amp * Math.sin(L.lobes * (t + rot)) * (0.72 + 0.28 * Math.cos(L.k * t)));
-        const x = cx + r * Math.cos(t);
-        const y = cy + r * Math.sin(t);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-  });
-
-  // солнечные лучи по внешнему кольцу
-  ctx.globalAlpha = 0.35;
-  ctx.lineWidth = 0.6;
-  for (let i = 0; i < 180; i += 1) {
-    const t = (i / 180) * Math.PI * 2;
-    const r1 = R * 1.0;
-    const r2 = R * (i % 5 === 0 ? 1.08 : 1.04);
-    ctx.beginPath();
-    ctx.moveTo(cx + r1 * Math.cos(t), cy + r1 * Math.sin(t));
-    ctx.lineTo(cx + r2 * Math.cos(t), cy + r2 * Math.sin(t));
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-
-  // площадка под монограмму
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 0.2, 0, Math.PI * 2);
-  ctx.fillStyle = "#F7F7F3";
-  ctx.fill();
-  ctx.lineWidth = 0.8;
-  ctx.strokeStyle = "rgba(46,94,78,0.7)";
-  ctx.stroke();
-}
-
-function Hallmark({ seed, background = true, cyRatio = 0.44 }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const canvas = ref.current;
-    const parent = canvas?.parentElement;
-    if (!canvas || !parent) return undefined;
-    const draw = () => {
-      const { width, height } = parent.getBoundingClientRect();
-      if (!width || !height) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2) * 1.2;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      const ctx = canvas.getContext("2d");
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawGuilloche(ctx, width, height, seed, { background, cyRatio });
-    };
-    draw();
-    const ro = new ResizeObserver(draw);
-    ro.observe(parent);
-    return () => ro.disconnect();
-  }, [seed, background, cyRatio]);
-  return <canvas ref={ref} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
+/** Пастельный фон в арке вместо фото: пятна мягкого света, как в студии. Фото мастера подставляется через поле photo. */
+function SoftPortrait({ seed = 0 }) {
+  const [base, light, shade] = PORTRAIT_TONES[seed % PORTRAIT_TONES.length];
+  return (
+    <div
+      className="absolute inset-0"
+      style={{
+        background: `radial-gradient(60% 45% at 30% 22%, ${light} 0%, transparent 72%), radial-gradient(75% 55% at 78% 88%, ${shade} 0%, transparent 70%), ${base}`,
+      }}
+    >
+      <div className="absolute inset-[7%] rounded-b-[22px] rounded-t-[999px] border border-white/70" />
+    </div>
+  );
 }
 
 /* ───────────────────────────── Лоадер ───────────────────────────── */
@@ -596,12 +512,12 @@ function Hallmark({ seed, background = true, cyRatio = 0.44 }) {
 function LoaderFace({ count, cut }) {
   return (
     <div className="relative h-full w-full">
-      <div className="f-label absolute left-4 right-4 top-6 flex justify-between text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/55 sm:left-10 sm:right-10 sm:top-8">
+      <div className="f-label absolute left-4 right-4 top-6 flex justify-between text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55 sm:left-10 sm:right-10 sm:top-8">
         <span>Onix Barbershop · Гомель</span>
         <span>Est. 2014</span>
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="f-display flex text-[clamp(7rem,36vw,26rem)] font-extrabold leading-[0.82]" aria-hidden="true">
+        <div className="f-display flex text-[clamp(5rem,22vw,16rem)] font-medium leading-[0.92] tracking-[0.04em]" aria-hidden="true">
           {[..."ONIX"].map((ch, i) => (
             <span key={i} className="inline-block overflow-hidden pb-[0.04em]">
               <motion.span
@@ -620,23 +536,23 @@ function LoaderFace({ count, cut }) {
         initial={{ opacity: 0, letterSpacing: "0.1em" }}
         animate={{ opacity: 1, letterSpacing: "0.55em" }}
         transition={{ duration: 1.8, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="f-label absolute inset-x-0 top-[calc(50%+clamp(3.4rem,15vw,11rem))] text-center text-[11px] uppercase text-[#2E5E4E]"
+        className="f-label absolute inset-x-0 top-[calc(50%+clamp(3.4rem,15vw,11rem))] text-center text-[11px] uppercase text-[#4F7A68]"
       >
         Искусство острой линии
       </motion.p>
       <motion.span
         aria-hidden="true"
-        className="absolute inset-x-0 top-1/2 h-px origin-left bg-gradient-to-r from-transparent via-[#4E8A72] to-transparent"
+        className="absolute inset-x-0 top-1/2 h-px origin-left bg-gradient-to-r from-transparent via-[#6E9A86] to-transparent"
         initial={{ scaleX: 0 }}
         animate={{ scaleX: cut ? 1 : 0 }}
         transition={{ duration: 0.5, ease: [0.83, 0, 0.17, 1] }}
       />
       <div className="absolute bottom-6 left-4 right-4 flex items-end justify-between gap-6 sm:bottom-8 sm:left-10 sm:right-10">
-        <span className="f-display text-6xl font-bold leading-none tabular-nums text-[#1D2622]/90 sm:text-8xl">{String(count).padStart(3, "0")}</span>
+        <span className="f-display text-6xl font-medium leading-none tabular-nums text-[#26332D]/90 sm:text-8xl">{String(count).padStart(3, "0")}</span>
         <div className="w-32 sm:w-52">
-          <div className="f-label mb-2 text-right text-[11px] uppercase tracking-[0.25em] text-[#1D2622]/55">Готовим кресло</div>
-          <div className="h-px bg-[#1D2622]/15">
-            <div className="h-px bg-[#2E5E4E]" style={{ width: `${count}%` }} />
+          <div className="f-label mb-2 text-right text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">Готовим кресло</div>
+          <div className="h-px bg-[#26332D]/15">
+            <div className="h-px bg-[#4F7A68]" style={{ width: `${count}%` }} />
           </div>
         </div>
       </div>
@@ -661,12 +577,12 @@ function Loader({ onDone }) {
   const half = { duration: 1.15, ease: EASE_CUT };
   return (
     <div className="fixed inset-0 z-[200]" role="status" aria-label="Загрузка сайта">
-      <motion.div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden bg-[#ECEDE8]" exit={{ y: "-100%" }} transition={half}>
+      <motion.div className="absolute inset-x-0 top-0 h-1/2 overflow-hidden bg-[#EEF1EC]" exit={{ y: "-100%" }} transition={half}>
         <div className="absolute inset-x-0 top-0 h-[200%]">
           <LoaderFace count={count} cut={cut} />
         </div>
       </motion.div>
-      <motion.div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden bg-[#ECEDE8]" exit={{ y: "100%" }} transition={half}>
+      <motion.div className="absolute inset-x-0 bottom-0 h-1/2 overflow-hidden bg-[#EEF1EC]" exit={{ y: "100%" }} transition={half}>
         <div className="absolute inset-x-0 bottom-0 h-[200%]">
           <LoaderFace count={count} cut={cut} />
         </div>
@@ -722,17 +638,17 @@ function Cursor() {
     <>
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[300] -ml-[3px] -mt-[3px] h-1.5 w-1.5 rounded-full bg-[#2E5E4E]"
+        className="pointer-events-none fixed left-0 top-0 z-[300] -ml-[3px] -mt-[3px] h-1.5 w-1.5 rounded-full bg-[#4F7A68]"
         style={{ x: dotX, y: dotY }}
         animate={{ scale: mode === "link" ? 0 : 1 }}
       />
       <motion.div
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[300] -ml-5 -mt-5 h-10 w-10 rounded-full border border-[#2E5E4E]/60"
+        className="pointer-events-none fixed left-0 top-0 z-[300] -ml-5 -mt-5 h-10 w-10 rounded-full border border-[#4F7A68]/60"
         style={{ x: ringX, y: ringY }}
         animate={{
           scale: mode === "link" ? 1.7 : mode === "text" ? 0.35 : 1,
-          backgroundColor: mode === "link" ? "rgba(46,94,78,0.14)" : "rgba(46,94,78,0)",
+          backgroundColor: mode === "link" ? "rgba(79,122,104,0.14)" : "rgba(79,122,104,0)",
         }}
         transition={{ type: "spring", stiffness: 300, damping: 22 }}
       />
@@ -771,10 +687,10 @@ function Nav({ ready, onNav }) {
         <Container className="pt-3">
           <motion.nav
             aria-label="Основная навигация"
-            className="flex items-center justify-between gap-4 border px-4 py-3 sm:px-6"
+            className="flex items-center justify-between gap-4 rounded-full border px-5 py-2.5 sm:px-7"
             animate={{
-              backgroundColor: scrolled || open ? "rgba(247,247,243,0.8)" : "rgba(247,247,243,0)",
-              borderColor: scrolled || open ? "rgba(29,38,34,0.1)" : "rgba(29,38,34,0)",
+              backgroundColor: scrolled || open ? "rgba(250,251,248,0.8)" : "rgba(250,251,248,0)",
+              borderColor: scrolled || open ? "rgba(38,51,45,0.1)" : "rgba(38,51,45,0)",
             }}
             style={{
               backdropFilter: scrolled || open ? "blur(18px) saturate(140%)" : "none",
@@ -790,8 +706,8 @@ function Nav({ ready, onNav }) {
               className="flex items-baseline gap-3"
               aria-label="Onix Barbershop — наверх"
             >
-              <span className="f-display text-3xl font-extrabold tracking-[0.12em] text-[#1D2622]">ONIX</span>
-              <span className="f-label text-[10px] uppercase tracking-[0.22em] text-[#2E5E4E]">
+              <span className="f-display text-2xl font-semibold tracking-[0.16em] text-[#26332D]">ONIX</span>
+              <span className="f-label text-[10px] uppercase tracking-[0.14em] text-[#4F7A68]">
                 Barbershop<span className="hidden sm:inline"> · Gomel</span>
               </span>
             </a>
@@ -807,13 +723,13 @@ function Nav({ ready, onNav }) {
                     initial="rest"
                     animate="rest"
                     whileHover="hover"
-                    className="f-label relative block py-1 text-[12px] uppercase tracking-[0.24em] text-[#1D2622]/80"
-                    variants={{ rest: { color: "rgba(29,38,34,0.75)" }, hover: { color: "#1D2622" } }}
+                    className="f-label relative block py-1 text-[12px] uppercase tracking-[0.14em] text-[#26332D]/80"
+                    variants={{ rest: { color: "rgba(38,51,45,0.75)" }, hover: { color: "#26332D" } }}
                   >
                     {item.label}
                     <motion.span
                       aria-hidden="true"
-                      className="absolute -bottom-0.5 left-0 h-px w-full origin-left bg-[#2E5E4E]"
+                      className="absolute -bottom-0.5 left-0 h-px w-full origin-left bg-[#4F7A68]"
                       variants={{ rest: { scaleX: 0 }, hover: { scaleX: 1 } }}
                       transition={springSnappy}
                     />
@@ -827,9 +743,9 @@ function Nav({ ready, onNav }) {
                   <motion.button
                     type="button"
                     onClick={() => go("booking")}
-                    whileHover={{ backgroundColor: "#2E5E4E", color: "#F7F7F3" }}
+                    whileHover={{ backgroundColor: "#4F7A68", color: "#FAFBF8" }}
                     whileTap={{ scale: 0.95 }}
-                    className="f-label border border-[#2E5E4E] px-5 py-2.5 text-[12px] uppercase tracking-[0.22em] text-[#2E5E4E]"
+                    className="f-label rounded-full border border-[#4F7A68] px-5 py-2.5 text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]"
                   >
                     Записаться
                   </motion.button>
@@ -840,7 +756,7 @@ function Nav({ ready, onNav }) {
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
                 aria-label={open ? "Закрыть меню" : "Открыть меню"}
-                className="grid h-10 w-10 place-items-center border border-[#1D2622]/20 text-[#1D2622] lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-full border border-[#26332D]/20 text-[#26332D] lg:hidden"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.span
@@ -863,7 +779,7 @@ function Nav({ ready, onNav }) {
         {open ? (
           <motion.div
             key="menu"
-            className="fixed inset-0 z-40 flex flex-col justify-end bg-[#ECEDE8] px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] pt-28 sm:px-8 lg:hidden"
+            className="fixed inset-0 z-40 flex flex-col justify-end bg-[#EEF1EC] px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] pt-28 sm:px-8 lg:hidden"
             initial={{ clipPath: "circle(0% at 92% 6%)" }}
             animate={{ clipPath: "circle(150% at 92% 6%)" }}
             exit={{ clipPath: "circle(0% at 92% 6%)" }}
@@ -875,25 +791,25 @@ function Nav({ ready, onNav }) {
                   <motion.button
                     type="button"
                     onClick={() => go(item.id)}
-                    className="f-display flex w-full items-baseline justify-between border-b border-[#1D2622]/15 py-3 text-left text-[clamp(3rem,14vw,5rem)] font-extrabold uppercase leading-none"
+                    className="f-display flex w-full items-baseline justify-between border-b border-[#26332D]/15 py-3 text-left text-[clamp(2.6rem,11vw,4rem)] font-medium leading-tight"
                     initial={{ y: "110%" }}
                     animate={{ y: "0%" }}
                     transition={{ type: "spring", stiffness: 110, damping: 16, delay: 0.25 + i * 0.07 }}
                   >
                     {item.label}
-                    <ArrowUpRight className="text-[#2E5E4E]" size={28} strokeWidth={1.2} />
+                    <ArrowUpRight className="text-[#4F7A68]" size={28} strokeWidth={1.2} />
                   </motion.button>
                 </li>
               ))}
             </ul>
             <motion.div
-              className="f-label mt-10 flex flex-wrap justify-between gap-3 text-[12px] uppercase tracking-[0.2em] text-[#1D2622]/60"
+              className="f-label mt-10 flex flex-wrap justify-between gap-3 text-[12px] uppercase tracking-[0.14em] text-[#26332D]/60"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
             >
               <span>{ADDRESS}</span>
-              <span className="text-[#2E5E4E]">{PHONE}</span>
+              <span className="text-[#4F7A68]">{PHONE}</span>
             </motion.div>
           </motion.div>
         ) : null}
@@ -1008,7 +924,7 @@ function buildScissors() {
   const tilt = new THREE.Group();
   tilt.add(inner);
   tilt.rotation.z = 0.55;
-  tilt.scale.setScalar(1.2);
+  tilt.scale.setScalar(1.05);
   const snip = (deg) => {
     const r = THREE.MathUtils.degToRad(deg / 2);
     a.rotation.z = r;
@@ -1079,7 +995,7 @@ function buildComb() {
 }
 
 function buildDryer() {
-  const shell = new THREE.MeshPhysicalMaterial({ color: srgb(0x2e5e4e), roughness: 0.34, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.2 });
+  const shell = new THREE.MeshPhysicalMaterial({ color: srgb(0x5c8a76), roughness: 0.34, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.2 });
   const graphite = new THREE.MeshStandardMaterial({ color: srgb(0x252d2a), roughness: 0.42, metalness: 0.25 });
   const chrome = new THREE.MeshStandardMaterial({ color: srgb(0xe6e9e7), metalness: 1, roughness: 0.16 });
   const rubber = new THREE.MeshStandardMaterial({ color: srgb(0x1d2622), roughness: 0.75 });
@@ -1148,14 +1064,14 @@ function buildDryer() {
     ctx.clearRect(0, 0, w, h);
     ctx.translate(w / 2, h / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = "rgba(247,247,243,0.9)";
-    ctx.font = "700 92px 'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif";
+    ctx.fillStyle = "rgba(250,251,248,0.9)";
+    ctx.font = "italic 500 92px 'Lora', Georgia, serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("ONIX", 0, 0);
+    ctx.fillText("Onix", 0, 0);
   };
   const logoTex = canvasTexture(256, 512, drawLogo);
-  document.fonts?.load("700 92px 'Sofia Sans Extra Condensed'").then(() => {
+  document.fonts?.load("italic 500 92px 'Lora'").then(() => {
     drawLogo(logoTex.image.getContext("2d"), 256, 512);
     logoTex.needsUpdate = true;
   });
@@ -1262,8 +1178,8 @@ function ToolsShowcase({ ready, progress }) {
 
     const shadowTex = canvasTexture(256, 256, (ctx, w) => {
       const g = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
-      g.addColorStop(0, "rgba(29,38,34,0.42)");
-      g.addColorStop(1, "rgba(29,38,34,0)");
+      g.addColorStop(0, "rgba(38,51,45,0.42)");
+      g.addColorStop(1, "rgba(38,51,45,0)");
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, w);
     });
@@ -1445,7 +1361,7 @@ function ToolsShowcase({ ready, progress }) {
       className="relative mx-auto aspect-[4/5] w-full max-w-[540px] lg:ml-auto lg:mr-0"
     >
       <motion.div
-        className="absolute inset-0 overflow-hidden border border-[#1D2622]/15 bg-[radial-gradient(ellipse_at_50%_38%,#FFFFFF_0%,#F2F3EF_42%,#DFE3DD_100%)] shadow-[0_40px_80px_-40px_rgba(29,38,34,0.35)]"
+        className="absolute inset-0 overflow-hidden rounded-b-[36px] rounded-t-[999px] border border-white/80 bg-[radial-gradient(ellipse_at_50%_42%,#FFFFFF_0%,#F4F7F3_45%,#DCE6DF_100%)] shadow-[0_50px_90px_-50px_rgba(38,51,45,0.45)]"
         initial={{ clipPath: "inset(100% 0% 0% 0%)" }}
         animate={ready ? { clipPath: "inset(0% 0% 0% 0%)" } : undefined}
         transition={{ duration: 1.1, ease: EASE_CUT, delay: 0.1 }}
@@ -1462,18 +1378,16 @@ function ToolsShowcase({ ready, progress }) {
         >
           <canvas ref={canvasRef} className="block h-full w-full" aria-label={`3D-модель: ${tool.name}`} role="img" />
         </div>
-        {webgl ? null : (
-          <div className="f-display absolute inset-0 grid place-items-center text-6xl font-extrabold uppercase text-[#1D2622]/25">{tool.name}</div>
-        )}
+        {webgl ? null : <div className="f-display absolute inset-0 grid place-items-center text-5xl italic text-[#26332D]/30">{tool.name}</div>}
 
         <motion.div
           {...lateIn(1.0)}
-          className="f-label pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-4 text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/65"
+          className="f-label pointer-events-none absolute inset-x-0 top-[11%] flex flex-col items-center gap-1.5 text-center text-[11px] uppercase tracking-[0.14em] text-[#26332D]/65"
         >
           <span>Инструменты мастера</span>
-          <span className="inline-flex items-center gap-2 text-[#2E5E4E]">
+          <span className="inline-flex items-center gap-1.5 normal-case tracking-normal text-[#4F7A68]">
             <Rotate3d size={14} strokeWidth={1.6} />
-            Покрутите
+            Покрутите мышью или пальцем
           </span>
         </motion.div>
 
@@ -1487,9 +1401,9 @@ function ToolsShowcase({ ready, progress }) {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ type: "spring", stiffness: 160, damping: 20 }}
               >
-                <span className="f-label block text-[11px] uppercase tracking-[0.22em] text-[#2E5E4E]">{tool.n} / 03</span>
-                <span className="f-display block text-5xl font-extrabold uppercase leading-none text-[#1D2622]">{tool.name}</span>
-                <span className="f-label mt-1 block text-[12px] uppercase tracking-[0.16em] text-[#1D2622]/60">{tool.spec}</span>
+                <span className="f-label block text-[11px] uppercase tracking-[0.14em] text-[#4F7A68]">{tool.n} / 03</span>
+                <span className="f-display block text-4xl font-medium leading-none text-[#26332D]">{tool.name}</span>
+                <span className="f-label mt-1 block text-[12px] uppercase tracking-[0.1em] text-[#26332D]/60">{tool.spec}</span>
               </motion.div>
             </AnimatePresence>
           </div>
@@ -1501,12 +1415,12 @@ function ToolsShowcase({ ready, progress }) {
                 onClick={() => api.current?.show(i)}
                 aria-label={`Показать: ${t.name}`}
                 aria-pressed={active === i}
-                className="relative h-1.5 w-9 overflow-hidden bg-[#1D2622]/15"
+                className="relative h-1.5 w-9 overflow-hidden bg-[#26332D]/15"
               >
                 {active === i ? (
                   <motion.span
                     key={cycle}
-                    className="absolute inset-0 origin-left bg-[#2E5E4E]"
+                    className="absolute inset-0 origin-left bg-[#4F7A68]"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{ duration: reduced ? 0 : SHOW_HOLD + 0.3, ease: "linear" }}
@@ -1527,15 +1441,15 @@ function ToolsShowcase({ ready, progress }) {
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="border border-[#1D2622]/15 bg-[#F7F7F3]/80 px-4 py-3 shadow-[0_30px_60px_-20px_rgba(29,38,34,0.25)] backdrop-blur-xl sm:px-5 sm:py-4"
+          className="rounded-[22px] border border-white/80 bg-[#FAFBF8]/80 px-4 py-3 shadow-[0_30px_60px_-24px_rgba(38,51,45,0.3)] backdrop-blur-xl sm:px-5 sm:py-4"
         >
-          <div className="flex gap-0.5 text-[#9A6440]">
+          <div className="flex gap-0.5 text-[#B07A55]">
             {Array.from({ length: 5 }, (_, i) => (
               <Star key={i} size={12} fill="currentColor" strokeWidth={0} />
             ))}
           </div>
-          <div className="f-display mt-2 text-4xl font-bold leading-none sm:text-5xl">4,98</div>
-          <div className="f-label mt-1 text-[11px] uppercase tracking-[0.18em] text-[#1D2622]/60">1 240 отзывов</div>
+          <div className="f-display mt-2 text-4xl font-medium leading-none sm:text-5xl">4,98</div>
+          <div className="f-label mt-1 text-[11px] uppercase tracking-[0.1em] text-[#26332D]/60">1 240 отзывов</div>
         </motion.div>
       </motion.div>
     </motion.div>
@@ -1574,52 +1488,44 @@ function Hero({ ready, onNav }) {
     >
       <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ y: bgY }}>
         <motion.div
-          className="absolute left-[30%] top-[-20%] h-[80vmax] w-[80vmax] rounded-full bg-[radial-gradient(circle,rgba(46,94,78,0.14),transparent_60%)]"
+          className="absolute left-[34%] top-[-22%] h-[62vmax] w-[62vmax] rounded-full bg-[#DCE6DF] opacity-90 blur-[90px]"
           style={{ x: glowX, y: glowY }}
         />
-        <Container className="absolute inset-0 grid grid-cols-4 lg:grid-cols-12">
-          {Array.from({ length: 12 }, (_, i) => (
-            <span
-              key={i}
-              className={`border-l border-[#1D2622]/[0.07] ${i >= 4 ? "hidden lg:block" : ""} ${i === 11 || i === 3 ? "border-r" : ""} ${i === 3 ? "lg:border-r-0" : ""}`}
-            />
-          ))}
-        </Container>
         <motion.div
-          className="f-display stroke-text absolute bottom-[-7vw] left-[-2vw] whitespace-nowrap text-[44vw] font-extrabold leading-none"
+          className="absolute bottom-[-24%] left-[-14%] h-[46vmax] w-[46vmax] rounded-full bg-[#E7D6C5] opacity-70 blur-[100px]"
           style={{ x: wordX }}
-        >
-          ONIX
-        </motion.div>
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        />
       </motion.div>
 
       <Container className="grid items-center gap-16 lg:grid-cols-12 lg:gap-8">
         <motion.div className="lg:col-span-7" style={{ y: copyY }}>
-          <motion.div {...show(0.1)} className="f-label flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] uppercase tracking-[0.2em] text-[#1D2622]/65">
-            <span className="text-[#2E5E4E]">[ Гомель · Румянцевская, 21 ]</span>
-            <span className="h-px w-10 bg-[#1D2622]/25" />
+          <motion.div {...show(0.1)} className="f-label flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] uppercase tracking-[0.14em] text-[#26332D]/65">
+            <span className="text-[#4F7A68]">
+              <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4F7A68] align-middle" aria-hidden="true" />
+              Гомель · Румянцевская, 21
+            </span>
+            <span className="h-px w-10 bg-[#26332D]/25" />
             <span>с 2014 года</span>
           </motion.div>
 
           <h1
             aria-label="Искусство острой линии"
-            className="f-display mt-7 text-[clamp(4rem,21vw,8rem)] font-extrabold uppercase leading-[0.86] lg:text-[clamp(5rem,11vw,11rem)]"
+            className="f-display mt-7 text-[clamp(3.2rem,14vw,5rem)] font-medium leading-[0.98] tracking-[-0.01em] lg:text-[clamp(4rem,7.4vw,7.6rem)]"
           >
             <span className="block">
               <SplitLetters text="Искусство" play={ready} delay={0.25} />
             </span>
-            <span className="block italic text-[#2E5E4E]">
+            <span className="block italic text-[#4F7A68]">
               <SplitLetters text="острой" play={ready} delay={0.5} />
             </span>
-            <span className="flex items-start gap-4 pl-[0.9em]">
+            <span className="block pl-[0.9em]">
               <SplitLetters text="линии" play={ready} delay={0.7} />
-              <motion.span {...show(1.4)} className="f-label mt-4 whitespace-nowrap text-[12px] font-normal tracking-[0.2em] text-[#1D2622]/55">
-                ± 0,5 мм
-              </motion.span>
             </span>
           </h1>
 
-          <motion.p {...show(0.95)} className="mt-9 max-w-[34rem] text-[16px] leading-relaxed text-[#1D2622]/75 sm:text-[17px]">
+          <motion.p {...show(0.95)} className="mt-9 max-w-[34rem] text-[16px] leading-relaxed text-[#26332D]/75 sm:text-[17px]">
             Барбершоп закрытого формата на шесть кресел. Каждый визит начинается с консультации и заканчивается горячим полотенцем. Работаем только по записи,
             поэтому мастер не торопится.
           </motion.p>
@@ -1629,15 +1535,15 @@ function Hero({ ready, onNav }) {
             <GhostButton onClick={() => onNav("craft")}>Услуги и цены</GhostButton>
           </motion.div>
 
-          <motion.dl {...show(1.25)} className="mt-14 grid max-w-xl grid-cols-3 gap-4 border-t border-[#1D2622]/15 pt-6 sm:gap-6">
+          <motion.dl {...show(1.25)} className="mt-14 grid max-w-xl grid-cols-3 gap-4 border-t border-[#26332D]/15 pt-6 sm:gap-6">
             {[
               ["Лет ремесла", 12, 0],
               ["Кресел", 6, 0],
               ["Оценка гостей", 4.98, 2],
             ].map(([label, value, dec]) => (
               <div key={label} className="min-w-0">
-                <dt className="f-label text-[11px] uppercase tracking-[0.2em] text-[#1D2622]/55">{label}</dt>
-                <dd className="f-display mt-1 text-5xl font-bold tabular-nums text-[#1D2622] sm:text-6xl">
+                <dt className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">{label}</dt>
+                <dd className="f-display mt-1 text-4xl font-medium tabular-nums text-[#26332D] sm:text-5xl">
                   <CountUp to={value} decimals={dec} play={ready} />
                 </dd>
               </div>
@@ -1654,16 +1560,13 @@ function Hero({ ready, onNav }) {
         type="button"
         {...show(1.6)}
         onClick={() => onNav("craft")}
-        className="f-label absolute bottom-6 left-1/2 hidden -translate-x-1/2 items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/55 lg:flex"
+        className="f-label absolute bottom-6 left-1/2 hidden -translate-x-1/2 items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55 lg:flex"
       >
         <motion.span animate={{ y: [0, 6, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}>
           <ArrowDown size={14} />
         </motion.span>
         Листайте
       </motion.button>
-      <div className="f-label pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/40 [writing-mode:vertical-rl] xl:block">
-        52°25′ N · 31°00′ E
-      </div>
     </section>
   );
 }
@@ -1708,22 +1611,22 @@ function MarqueeBand() {
   const words = ["Стрижка", "Королевское бритьё", "Скин-фейд", "Борода", "Горячее полотенце", "Камуфляж седины", "Укладка"];
   return (
     <section aria-label="Направления барбершопа" className="relative py-14 sm:py-20">
-      <div className="relative -ml-[5%] w-[110%] -rotate-2 bg-[#2E5E4E] py-3 text-[#F7F7F3] sm:py-4">
+      <div className="relative -ml-[5%] w-[110%] -rotate-[1.5deg] bg-[#E7D6C5] py-3 text-[#26332D] sm:py-4">
         <VelocityMarquee baseVelocity={-3}>
           {words.map((w) => (
             <span key={w} className="flex items-center">
-              <span className="f-display px-6 text-[clamp(2.4rem,6vw,5rem)] font-extrabold uppercase italic leading-[1.05] sm:px-10">{w}</span>
-              <Spark className="h-5 w-5 sm:h-7 sm:w-7" />
+              <span className="f-display px-6 text-[clamp(2rem,4.6vw,4rem)] font-medium italic leading-[1.15] sm:px-10">{w}</span>
+              <Spark className="h-4 w-4 text-[#4F7A68] sm:h-6 sm:w-6" />
             </span>
           ))}
         </VelocityMarquee>
       </div>
-      <div className="relative -ml-[5%] -mt-2 w-[110%] rotate-[1.5deg] border-y border-[#1D2622]/15 bg-[#ECEDE8] py-3">
+      <div className="relative -ml-[5%] -mt-2 w-[110%] rotate-[1deg] bg-[#DCE6DF] py-3">
         <VelocityMarquee baseVelocity={2}>
           {words.map((w) => (
-            <span key={w} className="f-label flex items-center gap-6 px-6 text-[13px] uppercase tracking-[0.22em] text-[#1D2622]/70">
+            <span key={w} className="f-label flex items-center gap-6 px-6 text-[13px] uppercase tracking-[0.14em] text-[#26332D]/70">
               {w}
-              <span className="h-1 w-1 rotate-45 bg-[#2E5E4E]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4F7A68]" />
             </span>
           ))}
         </VelocityMarquee>
@@ -1777,24 +1680,28 @@ function Manifesto() {
     <section ref={ref} aria-label="Манифест" className="relative py-24 sm:py-36">
       <Container className="grid gap-12 lg:grid-cols-12">
         <div className="flex items-center gap-8 lg:col-span-3 lg:flex-col lg:items-start">
-          <p className="f-label text-[12px] uppercase tracking-[0.22em] text-[#2E5E4E]">[ Манифест ]</p>
+          <p className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">
+            <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4F7A68] align-middle" aria-hidden="true" />
+            Манифест
+          </p>
           <div className="mf-seal relative aspect-square w-28 overflow-hidden rounded-full sm:w-40 lg:w-48">
-            <Hallmark seed={5} background={false} cyRatio={0.5} />
-            <span className="f-display absolute inset-0 grid place-items-center text-2xl font-bold italic text-[#4E8A72] sm:text-3xl">O</span>
+            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_28%,#FFFFFF_0%,#E7D6C5_38%,#DCE6DF_70%,#B9CFC2_100%)]" />
+            <div className="absolute inset-[10%] rounded-full border border-dashed border-white/80" />
+            <span className="f-display absolute inset-0 grid place-items-center text-3xl italic text-[#4F7A68] sm:text-4xl">O</span>
           </div>
         </div>
-        <p className="mf-text f-display text-[clamp(2.4rem,5.6vw,5.4rem)] font-semibold leading-[1.04] text-[#1D2622] lg:col-span-9">
+        <p className="mf-text f-display text-[clamp(1.9rem,4.2vw,3.9rem)] font-normal leading-[1.22] text-[#26332D] lg:col-span-9">
           {MANIFESTO.map((seg, si) =>
             seg.t.split(" ").map((w, wi) => (
               <React.Fragment key={`${si}-${wi}`}>
-                <span className={`mf-w inline-block ${seg.em ? "italic text-[#2E5E4E]" : ""}`}>{w}</span>{" "}
+                <span className={`mf-w inline-block ${seg.em ? "italic text-[#4F7A68]" : ""}`}>{w}</span>{" "}
               </React.Fragment>
             )),
           )}
         </p>
       </Container>
       <Container className="mt-16">
-        <div className="mf-rule h-px origin-left bg-gradient-to-r from-[#2E5E4E] via-[#2E5E4E]/40 to-transparent" />
+        <div className="mf-rule h-px origin-left bg-gradient-to-r from-[#4F7A68] via-[#4F7A68]/40 to-transparent" />
       </Container>
     </section>
   );
@@ -1806,23 +1713,19 @@ function PriceTag({ price, rot, hover }) {
   const chars = [...fmtPrice(price)];
   return (
     <div className="relative -mt-1 flex shrink-0 flex-col items-center" aria-label={`Цена: ${fmtPrice(price)}`}>
-      <span className="h-1.5 w-1.5 rounded-full bg-[#2E5E4E]" aria-hidden="true" />
+      <span className="h-1.5 w-1.5 rounded-full bg-[#4F7A68]" aria-hidden="true" />
       <motion.div style={{ rotate: rot, transformOrigin: "50% 0%" }} className="flex flex-col items-center">
-        <span className="h-4 w-px bg-[#2E5E4E]/60" aria-hidden="true" />
-        <motion.div className="relative px-3.5 pb-2 pt-4 text-center" animate={{ color: hover ? "#F7F7F3" : "#1D2622" }} transition={{ duration: 0.3 }}>
-          <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <motion.polygon
-              points="18,0 82,0 100,18 100,100 0,100 0,18"
-              stroke="#2E5E4E"
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
-              animate={{ fill: hover ? "#2E5E4E" : "rgba(247,247,243,0.8)" }}
-              transition={{ duration: 0.3 }}
-            />
-          </svg>
+        <span className="h-4 w-px bg-[#4F7A68]/60" aria-hidden="true" />
+        <motion.div className="relative px-4 pb-2.5 pt-4 text-center" animate={{ color: hover ? "#FAFBF8" : "#26332D" }} transition={{ duration: 0.3 }}>
+          <motion.span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-2xl border border-[#4F7A68]/50 shadow-[0_12px_24px_-16px_rgba(38,51,45,0.5)]"
+            animate={{ backgroundColor: hover ? "#4F7A68" : "rgba(250,251,248,0.9)" }}
+            transition={{ duration: 0.3 }}
+          />
           <span className="absolute left-1/2 top-[5px] -ml-[3px] h-1.5 w-1.5 rounded-full border border-current opacity-70" aria-hidden="true" />
-          <span className="f-label relative block text-[9.5px] uppercase tracking-[0.24em] opacity-70">Цена</span>
-          <span className="f-display relative block whitespace-nowrap text-[1.9rem] font-bold leading-none" aria-hidden="true">
+          <span className="f-label relative block text-[9.5px] uppercase tracking-[0.14em] opacity-70">Цена</span>
+          <span className="f-display relative block whitespace-nowrap text-[1.4rem] font-semibold leading-none" aria-hidden="true">
             {chars.map((ch, i) => (
               <motion.span
                 key={i}
@@ -1855,8 +1758,8 @@ function ServiceCard({ s, index, onSelect }) {
   const tagRot = useSpring(tag, { stiffness: 150, damping: 5, mass: 0.6 });
   const lastX = useRef(null);
   const settle = useRef(null);
-  const border = useMotionTemplate`radial-gradient(380px circle at ${gx}px ${gy}px, rgba(46,94,78,0.95), rgba(46,94,78,0.35) 30%, rgba(29,38,34,0.12) 62%)`;
-  const sheen = useMotionTemplate`radial-gradient(520px circle at ${gx}px ${gy}px, rgba(46,94,78,0.10), transparent 42%)`;
+  const border = useMotionTemplate`radial-gradient(380px circle at ${gx}px ${gy}px, rgba(79,122,104,0.95), rgba(79,122,104,0.35) 30%, rgba(38,51,45,0.12) 62%)`;
+  const sheen = useMotionTemplate`radial-gradient(520px circle at ${gx}px ${gy}px, rgba(79,122,104,0.10), transparent 42%)`;
   const Icon = s.icon;
 
   const onMove = (e) => {
@@ -1908,46 +1811,46 @@ function ServiceCard({ s, index, onSelect }) {
         style={{ rotateX: srx, rotateY: sry, transformPerspective: 1100 }}
         whileHover={{ y: -8, scale: 1.015 }}
         transition={springSnappy}
-        className="relative"
+        className="relative rounded-[28px]"
       >
         <motion.div
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-6 blur-2xl"
-          style={{ background: "radial-gradient(closest-side, rgba(46,94,78,0.32), transparent)" }}
+          className="pointer-events-none absolute -inset-6 rounded-full blur-2xl"
+          style={{ background: "radial-gradient(closest-side, rgba(79,122,104,0.32), transparent)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: hover ? 0.7 : 0 }}
           transition={{ duration: 0.4 }}
         />
-        <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: border }} />
-        <div className="relative m-px flex flex-col gap-6 bg-[#F7F7F3]/85 p-6 backdrop-blur-xl sm:p-7">
-          <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: sheen }} />
+        <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[28px]" style={{ background: border }} />
+        <div className="relative m-px flex flex-col gap-6 rounded-[27px] bg-[#FAFBF8]/90 p-6 backdrop-blur-xl sm:p-7">
+          <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[27px]" style={{ background: sheen }} />
           <div className="relative flex items-start justify-between gap-4">
             <div className="flex items-center gap-3 pt-2">
               <motion.span
-                className="grid h-11 w-11 place-items-center border border-[#2E5E4E]/40 text-[#2E5E4E]"
-                animate={{ rotate: hover ? 90 : 0, borderColor: hover ? "rgba(46,94,78,1)" : "rgba(46,94,78,0.4)" }}
+                className="grid h-11 w-11 place-items-center rounded-full bg-[#DCE6DF] text-[#4F7A68]"
+                animate={{ rotate: hover ? 90 : 0, borderColor: hover ? "rgba(79,122,104,1)" : "rgba(79,122,104,0.4)" }}
                 transition={springSnappy}
               >
                 <motion.span animate={{ rotate: hover ? -90 : 0 }} transition={springSnappy} className="grid place-items-center">
                   <Icon size={18} strokeWidth={1.4} />
                 </motion.span>
               </motion.span>
-              <div className="f-label flex flex-col text-[11px] uppercase tracking-[0.22em]">
-                <span className="text-[#1D2622]/60">{s.cat}</span>
-                {s.badge ? <span className="text-[#2E5E4E]">{s.badge}</span> : null}
+              <div className="f-label flex flex-col text-[11px] uppercase tracking-[0.14em]">
+                <span className="text-[#26332D]/60">{s.cat}</span>
+                {s.badge ? <span className="text-[#4F7A68]">{s.badge}</span> : null}
               </div>
             </div>
             <PriceTag price={s.price} rot={tagRot} hover={hover} />
           </div>
 
           <div className="relative">
-            <h3 className="f-display text-[2.5rem] font-bold leading-[0.95] sm:text-[2.8rem]">{s.title}</h3>
-            <p className="mt-3 min-h-[4.9em] text-[15px] leading-relaxed text-[#1D2622]/70">{s.desc}</p>
+            <h3 className="f-display text-[1.9rem] font-medium leading-[1.05] sm:text-[2.1rem]">{s.title}</h3>
+            <p className="mt-3 min-h-[4.9em] text-[15px] leading-relaxed text-[#26332D]/70">{s.desc}</p>
           </div>
 
-          <div className="f-label relative flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#1D2622]/15 pt-4 text-[12px] uppercase tracking-[0.16em] text-[#1D2622]/65">
+          <div className="f-label relative flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#26332D]/15 pt-4 text-[12px] uppercase tracking-[0.1em] text-[#26332D]/65">
             <span className="inline-flex items-center gap-2">
-              <Clock size={13} strokeWidth={1.5} className="text-[#2E5E4E]" />
+              <Clock size={13} strokeWidth={1.5} className="text-[#4F7A68]" />
               {s.time} мин
             </span>
             <span>{s.tool}</span>
@@ -1968,12 +1871,12 @@ function ServiceCard({ s, index, onSelect }) {
                   {s.includes.map((item, i) => (
                     <motion.li
                       key={item}
-                      className="flex items-center gap-3 text-[14px] text-[#1D2622]/80"
+                      className="flex items-center gap-3 text-[14px] text-[#26332D]/80"
                       initial={{ opacity: 0, x: -14 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ ...springSnappy, delay: 0.05 + i * 0.05 }}
                     >
-                      <Check size={14} className="shrink-0 text-[#2E5E4E]" />
+                      <Check size={14} className="shrink-0 text-[#4F7A68]" />
                       {item}
                     </motion.li>
                   ))}
@@ -1987,7 +1890,7 @@ function ServiceCard({ s, index, onSelect }) {
               type="button"
               onClick={() => setOpen((o) => !o)}
               aria-expanded={open}
-              className="f-label inline-flex items-center gap-2 py-1 text-[12px] uppercase tracking-[0.2em] text-[#1D2622]/80"
+              className="f-label inline-flex items-center gap-2 py-1 text-[12px] uppercase tracking-[0.14em] text-[#26332D]/80"
             >
               <motion.span animate={{ rotate: open ? 45 : 0 }} transition={springSnappy} className="grid place-items-center">
                 <Plus size={14} />
@@ -1997,9 +1900,9 @@ function ServiceCard({ s, index, onSelect }) {
             <motion.button
               type="button"
               onClick={() => onSelect(s.id)}
-              whileHover={{ x: 4, color: "#4E8A72" }}
+              whileHover={{ x: 4, color: "#6E9A86" }}
               transition={springSnappy}
-              className="f-label inline-flex items-center gap-2 py-1 text-[12px] uppercase tracking-[0.2em] text-[#2E5E4E]"
+              className="f-label inline-flex items-center gap-2 py-1 text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]"
             >
               Записаться
               <ArrowUpRight size={14} />
@@ -2014,14 +1917,14 @@ function ServiceCard({ s, index, onSelect }) {
 function Services({ onSelect }) {
   return (
     <section id="craft" className="relative scroll-mt-20 py-24 sm:py-32">
-      <div aria-hidden="true" className="pointer-events-none absolute left-[-10%] top-[30%] h-[40vmax] w-[40vmax] rounded-full bg-[#2E5E4E]/10 blur-[120px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute left-[-10%] top-[30%] h-[40vmax] w-[40vmax] rounded-full bg-[#4F7A68]/10 blur-[120px]" />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-[5%] right-[-8%] h-[32vmax] w-[32vmax] rounded-full bg-[#2E5E4E]/[0.07] blur-[110px]"
+        className="pointer-events-none absolute bottom-[5%] right-[-8%] h-[32vmax] w-[32vmax] rounded-full bg-[#4F7A68]/[0.07] blur-[110px]"
       />
       <Container>
         <SectionHead
-          eyebrow="[ Услуги и цены ]"
+          eyebrow="Услуги и цены"
           title="Наше"
           italic="ремесло"
           aside="Цена одинакова у всех мастеров. Время указано за весь визит, включая консультацию и укладку."
@@ -2106,22 +2009,25 @@ function Ritual() {
   return (
     <div>
       <section id="ritual" ref={section} className="relative scroll-mt-20 overflow-hidden py-24 lg:flex lg:h-screen lg:items-center lg:py-0">
-        <div className="absolute inset-x-0 top-0 hidden h-px bg-[#1D2622]/10 lg:block">
-          <div className="rt-progress h-px origin-left bg-[#2E5E4E]" />
+        <div className="absolute inset-x-0 top-0 hidden h-px bg-[#26332D]/10 lg:block">
+          <div className="rt-progress h-px origin-left bg-[#4F7A68]" />
         </div>
         <div ref={track} className="flex flex-col gap-5 px-4 sm:px-8 lg:w-max lg:flex-row lg:items-stretch lg:gap-6 lg:px-12">
           <div className="flex flex-col justify-center pb-8 lg:w-[36vw] lg:max-w-[560px] lg:pb-0 lg:pr-10">
-            <p className="f-label text-[12px] uppercase tracking-[0.22em] text-[#2E5E4E]">[ Стрижка «Onix» · {total} минут ]</p>
-            <h2 aria-label="Ритуал визита" className="f-display mt-5 text-[clamp(3.6rem,12vw,9rem)] font-extrabold uppercase leading-[0.88]">
+            <p className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">
+              <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4F7A68] align-middle" aria-hidden="true" />
+              Стрижка «Onix» · {total} минут
+            </p>
+            <h2 aria-label="Ритуал визита" className="f-display mt-5 text-[clamp(2.8rem,9vw,6.2rem)] font-medium leading-[0.98] tracking-[-0.01em]">
               <SplitLetters text="Ритуал" trigger="view" />{" "}
-              <span className="italic text-[#2E5E4E]">
+              <span className="italic text-[#4F7A68]">
                 <SplitLetters text="визита" trigger="view" delay={0.18} />
               </span>
             </h2>
-            <p className="mt-6 max-w-md text-[15px] leading-relaxed text-[#1D2622]/70">
+            <p className="mt-6 max-w-md text-[15px] leading-relaxed text-[#26332D]/70">
               Пять этапов, которые проходит каждый гость. Порядок не меняется, меняется только то, что мастер делает с вашими волосами.
             </p>
-            <p className="f-label mt-8 hidden items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-[#1D2622]/55 lg:flex">
+            <p className="f-label mt-8 hidden items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55 lg:flex">
               Листайте вниз
               <ArrowDown size={12} className="-rotate-90" />
             </p>
@@ -2131,24 +2037,24 @@ function Ritual() {
             return (
               <article
                 key={step.n}
-                className="rt-card relative flex min-h-[300px] flex-col justify-between overflow-hidden border border-[#1D2622]/15 bg-[#F7F7F3]/80 p-7 backdrop-blur-xl sm:p-9 lg:h-[64vh] lg:max-h-[600px] lg:w-[min(30vw,460px)]"
+                className="rt-card relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-[28px] border border-white/80 bg-[#FAFBF8]/85 p-7 shadow-[0_30px_60px_-40px_rgba(38,51,45,0.35)] backdrop-blur-xl sm:p-9 lg:h-[64vh] lg:max-h-[600px] lg:w-[min(30vw,460px)]"
               >
                 <span
-                  className="rt-num f-display stroke-text pointer-events-none absolute -right-4 -top-10 text-[14rem] font-extrabold leading-none sm:text-[18rem]"
+                  className="rt-num f-display pointer-events-none absolute -right-2 -top-8 text-[10rem] italic leading-none text-[#DCE6DF] sm:text-[13rem]"
                   aria-hidden="true"
                 >
                   {step.n}
                 </span>
                 <div className="relative flex items-center justify-between">
-                  <span className="grid h-12 w-12 place-items-center border border-[#2E5E4E]/50 text-[#2E5E4E]">
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-[#DCE6DF] text-[#4F7A68]">
                     <Icon size={20} strokeWidth={1.3} />
                   </span>
-                  <span className="f-label text-[11px] uppercase tracking-[0.25em] text-[#1D2622]/55">Этап {step.n}</span>
+                  <span className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">Этап {step.n}</span>
                 </div>
                 <div className="relative mt-16">
-                  <span className="f-label text-[12px] uppercase tracking-[0.2em] text-[#2E5E4E]">{step.min} мин</span>
-                  <h3 className="f-display mt-2 text-[2.8rem] font-bold leading-none sm:text-[3.3rem]">{step.title}</h3>
-                  <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-[#1D2622]/70">{step.text}</p>
+                  <span className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">{step.min} мин</span>
+                  <h3 className="f-display mt-2 text-[2.1rem] font-medium leading-tight sm:text-[2.4rem]">{step.title}</h3>
+                  <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-[#26332D]/70">{step.text}</p>
                 </div>
               </article>
             );
@@ -2180,36 +2086,34 @@ function MasterCard({ m, index, onBook }) {
       onHoverEnd={() => setHovered(false)}
       className={index % 2 ? "lg:mt-16" : ""}
     >
-      <div ref={imageRef} className="relative aspect-[3/4] overflow-hidden border border-[#1D2622]/15 bg-[#E3E7E1]" data-cursor="view">
+      <div ref={imageRef} className="relative aspect-[3/4] overflow-hidden rounded-b-[28px] rounded-t-[999px] bg-[#E1E8E2]" data-cursor="view">
         <motion.div
           className="absolute inset-0"
           initial={false}
           animate={{
-            scale: hover ? 1.16 : 1.02,
-            rotate: hover ? 4 : 0,
-            filter: hover ? "grayscale(0) brightness(1)" : "grayscale(1) brightness(1.03)",
+            scale: hover ? 1.1 : 1.02,
+            rotate: hover ? 2 : 0,
+            filter: hover ? "saturate(1.15) brightness(1)" : "saturate(0.7) brightness(1.03)",
           }}
           transition={{ type: "spring", stiffness: 55, damping: 18 }}
         >
-          {m.photo ? <img src={m.photo} alt={m.name} className="h-full w-full object-cover" /> : <Hallmark seed={m.seed} />}
+          {m.photo ? <img src={m.photo} alt={m.name} className="h-full w-full object-cover" /> : <SoftPortrait seed={index} />}
         </motion.div>
         {m.photo ? null : (
           <div aria-hidden="true" className="absolute inset-x-0 top-[44%] flex h-0 items-center justify-center">
             <motion.span
-              className="f-display text-[clamp(2.6rem,6vw,4rem)] font-bold italic leading-none"
-              animate={{ scale: hover ? 0.88 : 1, color: hover ? "#4E8A72" : "#1D2622" }}
+              className="f-display text-[clamp(2.6rem,6vw,4rem)] font-medium italic leading-none"
+              animate={{ scale: hover ? 0.88 : 1, color: hover ? "#6E9A86" : "#26332D" }}
               transition={{ type: "spring", stiffness: 120, damping: 14 }}
             >
               {m.mark}
             </motion.span>
           </div>
         )}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#ECEDE8] via-[#ECEDE8]/10 to-transparent" />
-        <div className="f-label absolute left-4 top-4 text-[11px] uppercase tracking-[0.25em] text-[#1D2622]/70">
-          Клеймо {m.mark}·{m.years}
-        </div>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#EEF1EC] via-[#EEF1EC]/10 to-transparent" />
+
         <motion.p
-          className="f-display absolute inset-x-0 bottom-0 p-5 text-2xl font-semibold italic leading-tight text-[#1D2622]"
+          className="f-display absolute inset-x-0 bottom-0 p-6 text-xl italic leading-snug text-[#26332D]"
           initial={false}
           animate={{ y: hover ? "0%" : "105%", opacity: hover ? 1 : 0 }}
           transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -2219,9 +2123,9 @@ function MasterCard({ m, index, onBook }) {
       </div>
       <div className="mt-5 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="f-display text-[2.3rem] font-bold leading-none">{m.name}</h3>
-          <p className="f-label mt-2 text-[11px] uppercase tracking-[0.22em] text-[#2E5E4E]">{m.role}</p>
-          <p className="f-label mt-1 text-[11px] uppercase tracking-[0.18em] text-[#1D2622]/55">
+          <h3 className="f-display text-[1.75rem] font-medium leading-tight">{m.name}</h3>
+          <p className="f-label mt-2 text-[11px] uppercase tracking-[0.14em] text-[#4F7A68]">{m.role}</p>
+          <p className="f-label mt-1 text-[11px] uppercase tracking-[0.1em] text-[#26332D]/55">
             {m.years} лет · {m.tool}
           </p>
         </div>
@@ -2230,10 +2134,10 @@ function MasterCard({ m, index, onBook }) {
             type="button"
             onClick={() => onBook(m.id)}
             aria-label={`Записаться к мастеру: ${m.name}`}
-            whileHover={{ backgroundColor: "#2E5E4E", color: "#F7F7F3", rotate: 45 }}
+            whileHover={{ backgroundColor: "#4F7A68", color: "#FAFBF8", rotate: 45 }}
             whileTap={{ scale: 0.9 }}
             transition={springSnappy}
-            className="grid h-11 w-11 shrink-0 place-items-center border border-[#2E5E4E]/60 text-[#2E5E4E]"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#4F7A68]/60 text-[#4F7A68]"
           >
             <ArrowUpRight size={18} strokeWidth={1.5} />
           </motion.button>
@@ -2248,7 +2152,7 @@ function Masters({ onBook }) {
     <section id="masters" className="relative scroll-mt-20 py-24 sm:py-32">
       <Container>
         <SectionHead
-          eyebrow="[ Четыре мастера ]"
+          eyebrow="Четыре мастера"
           title="Мастера"
           italic="своего дела"
           aside="У каждого мастера своё клеймо и свой главный инструмент. Наведите на карточку, чтобы прочитать, как он работает."
@@ -2272,15 +2176,19 @@ function Chip({ active, onClick, children, group, disabled = false }) {
       disabled={disabled}
       onClick={onClick}
       aria-pressed={active}
-      whileHover={disabled || active ? undefined : { borderColor: "rgba(46,94,78,0.7)", y: -2 }}
+      whileHover={disabled || active ? undefined : { borderColor: "rgba(79,122,104,0.7)", y: -2 }}
       whileTap={disabled ? undefined : { scale: 0.95 }}
       transition={springSnappy}
-      className={`f-label relative isolate border px-3.5 py-2 text-[13px] tracking-[0.04em] ${
-        active ? "border-[#2E5E4E] text-[#F7F7F3]" : "border-[#1D2622]/20 text-[#1D2622]/80"
-      } ${disabled ? "cursor-not-allowed text-[#1D2622]/35 line-through" : ""}`}
+      className={`f-label relative isolate rounded-full border px-4 py-2 text-[13px] tracking-[0.02em] ${
+        active ? "border-[#4F7A68] text-[#FAFBF8]" : "border-[#26332D]/20 text-[#26332D]/80"
+      } ${disabled ? "cursor-not-allowed text-[#26332D]/35 line-through" : ""}`}
     >
       {active ? (
-        <motion.span layoutId={`pill-${group}`} className="absolute inset-0 -z-10 bg-[#2E5E4E]" transition={{ type: "spring", stiffness: 380, damping: 30 }} />
+        <motion.span
+          layoutId={`pill-${group}`}
+          className="absolute inset-0 -z-10 rounded-full bg-[#4F7A68]"
+          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+        />
       ) : null}
       {children}
     </motion.button>
@@ -2290,8 +2198,8 @@ function Chip({ active, onClick, children, group, disabled = false }) {
 function Field({ step, label, error, children }) {
   return (
     <fieldset className="min-w-0">
-      <legend className="f-label mb-3 flex w-full items-center gap-3 text-[11px] uppercase tracking-[0.26em] text-[#1D2622]/55">
-        <span className="text-[#2E5E4E]">{step}</span>
+      <legend className="f-label mb-3 flex w-full items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">
+        <span className="text-[#4F7A68]">{step}</span>
         {label}
       </legend>
       {children}
@@ -2315,7 +2223,7 @@ function Field({ step, label, error, children }) {
 function MiniMap() {
   return (
     <svg viewBox="0 0 320 190" className="h-auto w-full" role="img" aria-label="Схема: Onix Barbershop рядом с дворцовым парком и рекой Сож">
-      <rect width="320" height="190" fill="#E3E7E1" />
+      <rect width="320" height="190" fill="#E1E8E2" />
       <path d="M 300 -10 C 276 50 322 100 292 150 S 276 200 294 210" fill="none" stroke="#AFC3CA" strokeWidth="22" />
       <text x="304" y="128" className="f-label" fontSize="7" letterSpacing="1.4" fill="#4F6E79" transform="rotate(-80 304 128)">
         Р. СОЖ
@@ -2329,16 +2237,16 @@ function MiniMap() {
         <path d="M -10 150 L 330 175" />
         <path d="M 150 -10 L 160 200" />
       </g>
-      <rect x="118" y="100" width="70" height="44" fill="#C7D6C8" stroke="#2E5E4E" strokeOpacity="0.3" />
-      <g fill="#2E5E4E" fillOpacity="0.35">
+      <rect x="118" y="100" width="70" height="44" fill="#C7D6C8" stroke="#4F7A68" strokeOpacity="0.3" />
+      <g fill="#4F7A68" fillOpacity="0.35">
         {Array.from({ length: 18 }, (_, i) => (
           <circle key={i} cx={127 + (i % 6) * 10.4 + (Math.floor(i / 6) % 2) * 5} cy={110 + Math.floor(i / 6) * 11} r="2.2" />
         ))}
       </g>
-      <text x="153" y="158" textAnchor="middle" className="f-label" fontSize="7" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.55">
+      <text x="153" y="158" textAnchor="middle" className="f-label" fontSize="7" letterSpacing="1.4" fill="#26332D" fillOpacity="0.55">
         ДВОРЦОВЫЙ ПАРК
       </text>
-      <text x="22" y="36" className="f-label" fontSize="7" letterSpacing="1.4" fill="#1D2622" fillOpacity="0.5" transform="rotate(11.6 22 36)">
+      <text x="22" y="36" className="f-label" fontSize="7" letterSpacing="1.4" fill="#26332D" fillOpacity="0.5" transform="rotate(11.6 22 36)">
         РУМЯНЦЕВСКАЯ
       </text>
       <motion.circle
@@ -2346,14 +2254,14 @@ function MiniMap() {
         cy="86"
         r="6"
         fill="none"
-        stroke="#2E5E4E"
+        stroke="#4F7A68"
         initial={{ scale: 1, opacity: 0.8 }}
         animate={{ scale: [1, 3.4], opacity: [0.8, 0] }}
         transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
       />
-      <circle cx="214" cy="86" r="5" fill="#2E5E4E" />
-      <circle cx="214" cy="86" r="1.8" fill="#F7F7F3" />
-      <text x="226" y="74" className="f-label" fontSize="8" letterSpacing="1.4" fill="#2E5E4E">
+      <circle cx="214" cy="86" r="5" fill="#4F7A68" />
+      <circle cx="214" cy="86" r="1.8" fill="#FAFBF8" />
+      <text x="226" y="74" className="f-label" fontSize="8" letterSpacing="1.4" fill="#4F7A68">
         ONIX · 21
       </text>
     </svg>
@@ -2362,11 +2270,11 @@ function MiniMap() {
 
 function ContactRow({ icon: Icon, label, children }) {
   return (
-    <div className="flex gap-4 border-t border-[#1D2622]/15 py-5">
-      <Icon size={18} strokeWidth={1.4} className="mt-0.5 shrink-0 text-[#2E5E4E]" />
+    <div className="flex gap-4 border-t border-[#26332D]/15 py-5">
+      <Icon size={18} strokeWidth={1.4} className="mt-0.5 shrink-0 text-[#4F7A68]" />
       <div className="min-w-0 flex-1">
-        <p className="f-label text-[11px] uppercase tracking-[0.24em] text-[#1D2622]/55">{label}</p>
-        <div className="mt-1.5 text-[16px] text-[#1D2622]">{children}</div>
+        <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">{label}</p>
+        <div className="mt-1.5 text-[16px] text-[#26332D]">{children}</div>
       </div>
     </div>
   );
@@ -2426,27 +2334,30 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
 
   return (
     <section id="booking" ref={sectionRef} className="relative scroll-mt-20 py-24 sm:py-32">
-      <div aria-hidden="true" className="pointer-events-none absolute right-[10%] top-[20%] h-[36vmax] w-[36vmax] rounded-full bg-[#2E5E4E]/10 blur-[120px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute right-[10%] top-[20%] h-[36vmax] w-[36vmax] rounded-full bg-[#4F7A68]/10 blur-[120px]" />
       <Container className="grid gap-14 lg:grid-cols-12 lg:gap-10">
         <div className="lg:col-span-5">
           <Reveal y={30}>
-            <p className="f-label text-[12px] uppercase tracking-[0.22em] text-[#2E5E4E]">[ Запись и контакты ]</p>
+            <p className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">
+              <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4F7A68] align-middle" aria-hidden="true" />
+              Запись и контакты
+            </p>
           </Reveal>
-          <h2 aria-label="Займите кресло" className="f-display mt-5 text-[clamp(3.6rem,12vw,9rem)] font-extrabold uppercase leading-[0.88]">
+          <h2 aria-label="Займите кресло" className="f-display mt-5 text-[clamp(2.8rem,9vw,6.2rem)] font-medium leading-[0.98] tracking-[-0.01em]">
             <SplitLetters text="Займите" trigger="view" />{" "}
-            <span className="italic text-[#2E5E4E]">
+            <span className="italic text-[#4F7A68]">
               <SplitLetters text="кресло" trigger="view" delay={0.2} />
             </span>
           </h2>
           <Reveal delay={0.1} y={40}>
-            <p className="mt-6 max-w-md text-[15px] leading-relaxed text-[#1D2622]/70">
+            <p className="mt-6 max-w-md text-[15px] leading-relaxed text-[#26332D]/70">
               Выберите услугу, мастера и время. Администратор перезвонит в течение 15 минут, чтобы подтвердить визит.
             </p>
           </Reveal>
           <Reveal delay={0.15} y={50} className="mt-10">
             <ContactRow icon={MapPin} label="Адрес">
               {ADDRESS}
-              <span className="f-label mt-1 block text-[12px] uppercase tracking-[0.16em] text-[#1D2622]/55">5 минут пешком до дворцового парка</span>
+              <span className="f-label mt-1 block text-[12px] uppercase tracking-[0.1em] text-[#26332D]/55">5 минут пешком до дворцового парка</span>
             </ContactRow>
             <ContactRow icon={Clock} label="Часы работы">
               Ежедневно, 10:00–22:00
@@ -2460,9 +2371,9 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
                   type="button"
                   onClick={copyPhone}
                   whileTap={{ scale: 0.92 }}
-                  className="f-label inline-flex items-center gap-1.5 border border-[#1D2622]/20 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[#1D2622]/70"
+                  className="f-label inline-flex items-center gap-1.5 rounded-full border border-[#26332D]/20 px-3 py-1 text-[11px] uppercase tracking-[0.1em] text-[#26332D]/70"
                 >
-                  {copied === "ok" ? <Check size={12} className="text-[#2E5E4E]" /> : <Copy size={12} />}
+                  {copied === "ok" ? <Check size={12} className="text-[#4F7A68]" /> : <Copy size={12} />}
                   {copied === "ok" ? "Скопировано" : copied === "select" ? "Выделено" : "Копировать"}
                 </motion.button>
               </div>
@@ -2470,7 +2381,7 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
             <ContactRow icon={Send} label="Telegram">
               {TELEGRAM}
             </ContactRow>
-            <div className="mt-2 border border-[#1D2622]/15">
+            <div className="mt-2 overflow-hidden rounded-[24px] border border-white/80 shadow-[0_20px_50px_-35px_rgba(38,51,45,0.4)]">
               <MiniMap />
             </div>
           </Reveal>
@@ -2479,7 +2390,7 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
         <div className="lg:col-span-7">
           <Reveal y={80} delay={0.1}>
             <div
-              className="relative border border-[#1D2622]/15 bg-[#F7F7F3]/75 p-5 shadow-[0_40px_120px_-40px_rgba(29,38,34,0.16)] backdrop-blur-2xl sm:p-8 lg:p-10"
+              className="relative rounded-[32px] border border-white/80 bg-[#FAFBF8]/80 p-5 shadow-[0_40px_120px_-50px_rgba(38,51,45,0.35)] backdrop-blur-2xl sm:p-8 lg:p-10"
               style={{ perspective: 1400 }}
             >
               {/* Форма остаётся смонтированной: пилюли с layoutId блокируют exit у AnimatePresence. */}
@@ -2519,7 +2430,7 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
                     {days.map((d, i) => (
                       <Chip key={d.key} group="day" active={dayIdx === i} onClick={() => setDayIdx(i)}>
                         <span className="block text-[9px] uppercase tracking-[0.16em] opacity-70">{d.label}</span>
-                        <span className="f-display block text-2xl font-bold leading-tight">{d.day}</span>
+                        <span className="f-display block text-2xl font-medium leading-tight">{d.day}</span>
                         <span className="block text-[9px] uppercase tracking-[0.16em] opacity-70">{d.month}</span>
                       </Chip>
                     ))}
@@ -2544,7 +2455,7 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Как к вам обращаться"
                       aria-label="Имя"
-                      className="w-full border-b border-[#1D2622]/25 bg-transparent py-3 text-[17px] text-[#1D2622] outline-none focus:border-[#2E5E4E]"
+                      className="w-full rounded-2xl border border-[#26332D]/15 bg-white/70 px-4 py-3 text-[16px] text-[#26332D] outline-none focus:border-[#4F7A68]"
                     />
                   </Field>
                   <Field step="06" label="Телефон" error={errors.phone}>
@@ -2558,22 +2469,22 @@ function Booking({ sectionRef, service, setService, master, setMaster }) {
                       onChange={(e) => setPhone(formatPhone(e.target.value))}
                       placeholder="+375 (__) ___-__-__"
                       aria-label="Телефон"
-                      className="w-full border-b border-[#1D2622]/25 bg-transparent py-3 text-[17px] tabular-nums text-[#1D2622] outline-none focus:border-[#2E5E4E]"
+                      className="w-full rounded-2xl border border-[#26332D]/15 bg-white/70 px-4 py-3 text-[16px] tabular-nums text-[#26332D] outline-none focus:border-[#4F7A68]"
                     />
                   </Field>
                 </div>
-                <div className="flex flex-col gap-6 border-t border-[#1D2622]/15 pt-7 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-6 border-t border-[#26332D]/15 pt-7 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="f-label text-[11px] uppercase tracking-[0.24em] text-[#1D2622]/55">Итого</p>
+                    <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">Итого</p>
                     <motion.p
                       key={svc.id}
                       initial={{ y: 12, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={springSnappy}
-                      className="f-display mt-1 text-5xl font-bold"
+                      className="f-display mt-1 text-5xl font-medium"
                     >
                       {fmtPrice(svc.price)}
-                      <span className="f-label ml-3 text-[12px] font-normal uppercase tracking-[0.18em] text-[#1D2622]/55">{svc.time} мин</span>
+                      <span className="f-label ml-3 text-[12px] font-normal uppercase tracking-[0.1em] text-[#26332D]/55">{svc.time} мин</span>
                     </motion.p>
                   </div>
                   <PrimaryButton type="submit">Подтвердить запись</PrimaryButton>
@@ -2615,11 +2526,11 @@ function Ticket({ ticket, onEdit }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="f-label text-[11px] uppercase tracking-[0.2em] text-[#2E5E4E]">Запись сформирована</p>
-          <h3 className="f-display mt-2 text-5xl font-bold leading-none">Талон № {ticket.no}</h3>
+          <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#4F7A68]">Запись сформирована</p>
+          <h3 className="f-display mt-2 text-5xl font-medium leading-none">Талон № {ticket.no}</h3>
         </div>
         <motion.span
-          className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#2E5E4E] text-[#F7F7F3]"
+          className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#4F7A68] text-[#FAFBF8]"
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.25 }}
@@ -2627,9 +2538,9 @@ function Ticket({ ticket, onEdit }) {
           <Check size={24} />
         </motion.span>
       </div>
-      <div className="relative my-8 h-px border-t border-dashed border-[#1D2622]/25">
-        <span className="absolute -left-8 -top-3 h-6 w-6 rounded-full bg-[#ECEDE8] sm:-left-11 lg:-left-[3.25rem]" />
-        <span className="absolute -right-8 -top-3 h-6 w-6 rounded-full bg-[#ECEDE8] sm:-right-11 lg:-right-[3.25rem]" />
+      <div className="relative my-8 h-px border-t border-dashed border-[#26332D]/25">
+        <span className="absolute -left-8 -top-3 h-6 w-6 rounded-full bg-[#EEF1EC] sm:-left-11 lg:-left-[3.25rem]" />
+        <span className="absolute -right-8 -top-3 h-6 w-6 rounded-full bg-[#EEF1EC] sm:-right-11 lg:-right-[3.25rem]" />
       </div>
       <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
         {rows.map(([k, v], i) => (
@@ -2640,25 +2551,25 @@ function Ticket({ ticket, onEdit }) {
             transition={{ ...springSnappy, delay: 0.2 + i * 0.06 }}
             className="min-w-0"
           >
-            <dt className="f-label text-[11px] uppercase tracking-[0.24em] text-[#1D2622]/55">{k}</dt>
-            <dd className="mt-1 break-words text-[17px] text-[#1D2622]">{v}</dd>
+            <dt className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">{k}</dt>
+            <dd className="mt-1 break-words text-[17px] text-[#26332D]">{v}</dd>
           </motion.div>
         ))}
       </dl>
-      <div className="mt-8 flex flex-col gap-6 border-t border-[#1D2622]/15 pt-7 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-8 flex flex-col gap-6 border-t border-[#26332D]/15 pt-7 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="f-label text-[11px] uppercase tracking-[0.24em] text-[#1D2622]/55">К оплате в барбершопе</p>
-          <p className="f-display mt-1 text-5xl font-bold">{fmtPrice(ticket.svc.price)}</p>
+          <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">К оплате в барбершопе</p>
+          <p className="f-display mt-1 text-5xl font-medium">{fmtPrice(ticket.svc.price)}</p>
         </div>
         <button
           type="button"
           onClick={onEdit}
-          className="f-label self-start border border-[#1D2622]/25 px-5 py-3 text-[12px] uppercase tracking-[0.2em] text-[#1D2622]/80 sm:self-auto"
+          className="f-label self-start rounded-full border border-[#26332D]/25 px-5 py-3 text-[12px] uppercase tracking-[0.14em] text-[#26332D]/80 sm:self-auto"
         >
           Изменить запись
         </button>
       </div>
-      <p className="f-label mt-6 text-[11px] uppercase leading-relaxed tracking-[0.16em] text-[#1D2622]/50">Демо-страница: заявка никуда не отправляется.</p>
+      <p className="f-label mt-6 text-[11px] uppercase leading-relaxed tracking-[0.1em] text-[#26332D]/50">Демо-страница: заявка никуда не отправляется.</p>
     </motion.div>
   );
 }
@@ -2667,38 +2578,38 @@ function Ticket({ ticket, onEdit }) {
 
 function Footer({ onNav }) {
   return (
-    <footer className="relative overflow-hidden border-t border-[#1D2622]/15 pt-20">
+    <footer className="relative overflow-hidden border-t border-[#26332D]/15 pt-20">
       <Container className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="f-display text-4xl font-extrabold uppercase tracking-[0.03em]">Onix Barbershop</p>
-          <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-[#1D2622]/60">
+          <p className="f-display text-3xl font-medium">Onix Barbershop</p>
+          <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-[#26332D]/60">
             Мужской барбершоп в центре Гомеля, рядом с дворцовым парком. Стрижки, бритьё и уход за бородой по записи.
           </p>
         </div>
         <div>
-          <p className="f-label text-[11px] uppercase tracking-[0.24em] text-[#1D2622]/55">Адрес</p>
-          <p className="mt-2 text-[15px] text-[#1D2622]/85">{ADDRESS}</p>
+          <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">Адрес</p>
+          <p className="mt-2 text-[15px] text-[#26332D]/85">{ADDRESS}</p>
         </div>
         <div>
-          <p className="f-label text-[11px] uppercase tracking-[0.24em] text-[#1D2622]/55">Часы</p>
-          <p className="mt-2 text-[15px] text-[#1D2622]/85">Ежедневно, 10:00–22:00</p>
+          <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">Часы</p>
+          <p className="mt-2 text-[15px] text-[#26332D]/85">Ежедневно, 10:00–22:00</p>
         </div>
         <div>
-          <p className="f-label text-[11px] uppercase tracking-[0.24em] text-[#1D2622]/55">Связь</p>
-          <p className="mt-2 select-all text-[15px] tabular-nums text-[#1D2622]/85">{PHONE}</p>
-          <p className="text-[15px] text-[#1D2622]/85">{TELEGRAM}</p>
+          <p className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">Связь</p>
+          <p className="mt-2 select-all text-[15px] tabular-nums text-[#26332D]/85">{PHONE}</p>
+          <p className="text-[15px] text-[#26332D]/85">{TELEGRAM}</p>
         </div>
       </Container>
-      <div className="f-display mt-16 select-none text-center text-[42vw] font-extrabold leading-[0.78] tracking-[-0.01em]" aria-hidden="true">
+      <div className="f-display mt-16 select-none text-center text-[24vw] font-medium leading-[0.9] tracking-[0.03em]" aria-hidden="true">
         <SplitLetters text="ONIX" trigger="view" stagger={0.07} letterClassName="accent-text" />
       </div>
-      <Container className="f-label flex flex-col gap-4 border-t border-[#1D2622]/15 py-6 text-[11px] uppercase tracking-[0.2em] text-[#1D2622]/55 sm:flex-row sm:items-center sm:justify-between">
+      <Container className="f-label flex flex-col gap-4 border-t border-[#26332D]/15 py-6 text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55 sm:flex-row sm:items-center sm:justify-between">
         <span>© 2026 Onix Barbershop</span>
         <span>Сделано с точностью до 0,5 мм</span>
         <motion.button
           type="button"
           onClick={() => onNav("top")}
-          whileHover={{ y: -3, color: "#2E5E4E" }}
+          whileHover={{ y: -3, color: "#4F7A68" }}
           transition={springSnappy}
           className="inline-flex items-center gap-2 self-start uppercase sm:self-auto"
         >
@@ -2788,22 +2699,22 @@ function BookBadge({ hidden, onClick }) {
           className="relative grid h-full w-full place-items-center rounded-full"
         >
           <motion.span
-            className="absolute inset-0 rounded-full border bg-[#F7F7F3]/70 backdrop-blur-md"
+            className="absolute inset-0 rounded-full border bg-[#FAFBF8]/70 backdrop-blur-md"
             variants={{
-              rest: { borderColor: "rgba(46,94,78,0.4)", boxShadow: "0 0 0px rgba(46,94,78,0)" },
-              hover: { borderColor: "rgba(46,94,78,1)", boxShadow: "0 0 40px rgba(46,94,78,0.45)" },
+              rest: { borderColor: "rgba(79,122,104,0.4)", boxShadow: "0 0 0px rgba(79,122,104,0)" },
+              hover: { borderColor: "rgba(79,122,104,1)", boxShadow: "0 0 40px rgba(79,122,104,0.45)" },
             }}
           />
           <motion.svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" style={{ rotate }} aria-hidden="true">
             <path id="gr-badge-path" d="M 50,50 m -38,0 a 38,38 0 1,1 76,0 a 38,38 0 1,1 -76,0" fill="none" />
-            <text className="f-label" fontSize="8" letterSpacing="0.15" fill="#2E5E4E">
+            <text className="f-label" fontSize="8" letterSpacing="0.15" fill="#4F7A68">
               <textPath href="#gr-badge-path" textLength="236" lengthAdjust="spacing">
                 ЗАПИСАТЬСЯ · BOOK NOW · ЗАПИСАТЬСЯ · BOOK NOW ·
               </textPath>
             </text>
           </motion.svg>
           <motion.span
-            className="relative grid h-9 w-9 place-items-center rounded-full bg-[#2E5E4E] text-[#F7F7F3] sm:h-12 sm:w-12"
+            className="relative grid h-9 w-9 place-items-center rounded-full bg-[#4F7A68] text-[#FAFBF8] sm:h-12 sm:w-12"
             variants={{ rest: { scale: 1, rotate: 0 }, hover: { scale: 1.12, rotate: -30 } }}
             transition={{ type: "spring", stiffness: 300, damping: 12 }}
           >
@@ -2846,7 +2757,7 @@ export default function BarbershopLanding() {
   return (
     <MotionConfig reducedMotion="user">
       <GlobalStyles />
-      <div className="f-body relative min-h-screen overflow-x-clip bg-[#ECEDE8] text-[#1D2622]">
+      <div className="f-body relative min-h-screen overflow-x-clip bg-[#EEF1EC] text-[#26332D]">
         <div className="grain" aria-hidden="true" />
         <AnimatePresence>{loading ? <Loader key="loader" onDone={finishLoading} /> : null}</AnimatePresence>
         <Cursor />
