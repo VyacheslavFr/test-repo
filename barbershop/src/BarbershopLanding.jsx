@@ -11,6 +11,7 @@ import {
   MotionConfig,
   animate,
   motion,
+  motionValue,
   useAnimationFrame,
   useInView,
   useMotionTemplate,
@@ -37,8 +38,10 @@ import {
   Layers,
   MapPin,
   Menu,
+  Pause,
   PenTool,
   Phone,
+  Play,
   Plus,
   Rotate3d,
   ScanFace,
@@ -1944,125 +1947,87 @@ function Services({ onSelect }) {
 
 /* ───────────────────────────── Работы ───────────────────────────── */
 
-// Фото гостей лежат рядом со страницей в папке clients/
+// Фото гостей лежат рядом со страницей в папке clients/; pos — точка кадрирования в карточке
 const WORKS = [
   {
-    id: "w1",
-    src: "clients/client-1.webp",
-    w: 800,
-    h: 1200,
-    title: "Кроп с прямой чёлкой",
-    note: "Ножницы, плотная текстура и ровная линия чёлки.",
-    service: "signature",
+    id: "w6",
+    src: "clients/client-6.webp",
+    pos: "50% 22%",
+    title: "Зачёс с высоким фейдом",
+    note: "Объёмный верх назад и в сторону, чистый переход на висках.",
+    service: "fade",
   },
   {
     id: "w2",
     src: "clients/client-2.webp",
-    w: 960,
-    h: 1707,
+    pos: "42% 40%",
     title: "Скин-фейд и борода",
     note: "Переход от кожи на висках, контур бороды опасной бритвой.",
     service: "fade",
   },
   {
+    id: "w8",
+    src: "clients/client-8.webp",
+    pos: "50% 35%",
+    title: "Кудрявый верх и тейпер",
+    note: "Сохранили кудри сверху, аккуратно убрали виски и затылок.",
+    service: "signature",
+  },
+  {
+    id: "w1",
+    src: "clients/client-1.webp",
+    pos: "50% 28%",
+    title: "Кроп с прямой чёлкой",
+    note: "Ножницы, плотная текстура и ровная линия чёлки.",
+    service: "signature",
+  },
+  {
+    id: "w7",
+    src: "clients/client-7.webp",
+    pos: "50% 30%",
+    title: "Текстурный зачёс",
+    note: "Подвижная текстура сверху и скин-фейд по бокам.",
+    service: "fade",
+  },
+  { id: "w5", src: "clients/client-5.webp", pos: "58% 40%", title: "Маллет с фейдом", note: "Длина на затылке, фейд и оформление бороды.", service: "fade" },
+  { id: "w4", src: "clients/client-4.webp", pos: "45% 35%", title: "Текстурный кроп", note: "Объём сверху и мягкий переход по вискам.", service: "signature" },
+  {
+    id: "w9",
+    src: "clients/client-9.webp",
+    pos: "63% 30%",
+    title: "Классический помпадур",
+    note: "Высокий объём надо лбом и гладкая укладка назад.",
+    service: "signature",
+  },
+  {
     id: "w3",
     src: "clients/client-3.webp",
-    w: 960,
-    h: 1440,
+    pos: "68% 30%",
     title: "Текстурная стрижка",
     note: "Рваная чёлка и лёгкая небрежная укладка.",
     service: "signature",
   },
-  { id: "w4", src: "clients/client-4.webp", w: 960, h: 1438, title: "Текстурный кроп", note: "Объём сверху и мягкий переход по вискам.", service: "signature" },
-  { id: "w5", src: "clients/client-5.webp", w: 960, h: 1199, title: "Маллет с фейдом", note: "Длина на затылке, фейд и оформление бороды.", service: "fade" },
 ];
-const WORK_COLUMNS_DESKTOP = [
-  ["w1", "w4"],
-  ["w2", "cta"],
-  ["w5", "w3"],
-];
-const WORK_COLUMNS_MOBILE = [
-  ["w1", "w3", "w5"],
-  ["w2", "w4", "cta"],
-];
-const workById = (id) => WORKS.find((w) => w.id === id);
+const AUTOPLAY_MS = 3200;
+const SLIDE_SHAPE = "rounded-b-[26px] rounded-t-[999px]";
 
-function WorkCard({ work, index, arch, onOpen, onPick, compact }) {
-  const fine = useFinePointer();
-  const service = SERVICES.find((s) => s.id === work.service);
+/** Карточка ленты: чем дальше от центра, тем она меньше и прозрачнее. */
+function WorkSlide({ dist, slideRef, index, active, children, caption }) {
+  // dist — расстояние от центра ленты в «карточках»: 0 — в центре, ±1 — соседняя
+  const scale = useTransform(dist, (d) => 1 - Math.min(Math.abs(d), 2) * 0.1);
+  const opacity = useTransform(dist, (d) => 1 - Math.min(Math.abs(d), 2) * 0.32);
+  const y = useTransform(dist, (d) => Math.min(Math.abs(d), 2) * 20);
   return (
-    <motion.figure
-      initial="rest"
-      whileHover="hover"
-      animate="rest"
-      className={`group relative overflow-hidden bg-[#E1E8E2] shadow-[0_30px_60px_-40px_rgba(38,51,45,0.45)] ${arch ? "rounded-b-[28px] rounded-t-[999px]" : "rounded-[28px]"}`}
-      style={{ aspectRatio: `${work.w} / ${work.h}` }}
+    <motion.li
+      ref={slideRef}
+      style={{ scale, opacity, y }}
+      className="w-[68vw] max-w-[300px] shrink-0 snap-center sm:w-[300px] lg:w-[330px]"
+      aria-current={active ? "true" : undefined}
+      aria-label={`${index + 1} из ${WORKS.length + 1}`}
     >
-      <motion.img
-        src={work.src}
-        alt={`${work.title} — работа Onix Barbershop`}
-        loading="lazy"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
-        variants={{ rest: { scale: 1.02 }, hover: { scale: 1.08 } }}
-        transition={{ type: "spring", stiffness: 70, damping: 18 }}
-      />
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#26332D]/75 via-[#26332D]/10 to-transparent"
-        variants={{ rest: { opacity: fine ? 0.35 : 0.85 }, hover: { opacity: 1 } }}
-        transition={{ duration: 0.35 }}
-      />
-      <button type="button" onClick={() => onOpen(work.id)} className="absolute inset-0 z-10" aria-label={`Открыть фото: ${work.title}`} data-cursor="view" />
-      <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 z-20 p-4 text-[#FAFBF8] sm:p-6">
-        <motion.div
-          variants={{ rest: fine ? { y: 18, opacity: 0 } : { y: 0, opacity: 1 }, hover: { y: 0, opacity: 1 } }}
-          transition={{ type: "spring", stiffness: 160, damping: 20 }}
-        >
-          <span className="f-label block text-[11px] uppercase tracking-[0.14em] text-[#FAFBF8]/75">Работа {String(index + 1).padStart(2, "0")}</span>
-          <span className={`f-display block leading-tight ${compact ? "text-[1.05rem]" : "text-[1.6rem]"}`}>{work.title}</span>
-          {compact ? null : (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[14px] text-[#FAFBF8]/80">
-                {service.title} · {fmtPrice(service.price)}
-              </span>
-              <button
-                type="button"
-                onClick={() => onPick(work.service)}
-                className="f-label pointer-events-auto rounded-full bg-[#FAFBF8] px-4 py-2 text-[12px] uppercase tracking-[0.1em] text-[#26332D]"
-              >
-                Хочу так
-              </button>
-            </div>
-          )}
-        </motion.div>
-      </figcaption>
-    </motion.figure>
-  );
-}
-
-function WorksCta({ onPick, compact }) {
-  return (
-    <div className={`flex flex-col justify-between rounded-[28px] bg-[#E7D6C5] ${compact ? "gap-4 p-4" : "gap-6 p-6 sm:p-8"}`}>
-      <p className={`f-display leading-snug text-[#26332D] ${compact ? "text-[1.15rem]" : "text-[2rem]"}`}>
-        Следующая работа <span className="italic text-[#4F7A68]">может быть вашей</span>
-      </p>
-      {compact ? (
-        <motion.button
-          type="button"
-          onClick={() => onPick(null)}
-          whileTap={{ scale: 0.95 }}
-          className="f-label inline-flex items-center justify-center gap-2 rounded-full bg-[#4F7A68] px-4 py-2.5 text-[12px] uppercase tracking-[0.1em] text-[#FAFBF8]"
-        >
-          Записаться
-          <ArrowUpRight size={14} />
-        </motion.button>
-      ) : (
-        <div>
-          <PrimaryButton onClick={() => onPick(null)}>Записаться</PrimaryButton>
-        </div>
-      )}
-    </div>
+      {children}
+      {caption}
+    </motion.li>
   );
 }
 
@@ -2168,13 +2133,131 @@ function Lightbox({ index, onClose, onStep, onPick }) {
 }
 
 function Works({ onPick }) {
-  const ref = useRef(null);
+  const sectionRef = useRef(null);
+  const trackRef = useRef(null);
+  const slides = useRef([]);
+  const drag = useRef(null);
+  const dragMoved = useRef(false);
+  const releaseTimer = useRef(null);
   const reduced = useReducedMotion();
+  const fine = useFinePointer();
+  const inView = useInView(sectionRef, { amount: 0.3 });
+  const [active, setActive] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [hold, setHold] = useState(false);
   const [open, setOpen] = useState(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const yA = useTransform(scrollYProgress, [0, 1], reduced ? [0, 0] : [50, -50]);
-  const yB = useTransform(scrollYProgress, [0, 1], reduced ? [0, 0] : [160, -160]);
-  const yC = useTransform(scrollYProgress, [0, 1], reduced ? [0, 0] : [90, -90]);
+  const count = WORKS.length + 1; // последняя карточка — приглашение записаться
+  const dists = useMemo(() => Array.from({ length: count }, () => motionValue(2)), [count]);
+
+  const goTo = useCallback(
+    (i, smooth = true) => {
+      const track = trackRef.current;
+      const n = ((i % count) + count) % count;
+      const el = slides.current[n];
+      if (!track || !el) return;
+      track.scrollTo({ left: el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2, behavior: smooth && !reduced ? "smooth" : "auto" });
+      setActive(n);
+    },
+    [count, reduced],
+  );
+
+  // стартуем с середины ленты, чтобы по обе стороны были фото
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => goTo(2, false));
+    return () => cancelAnimationFrame(raf);
+  }, [goTo]);
+
+  // активная карточка — ближайшая к центру ленты
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return undefined;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const mid = track.scrollLeft + track.clientWidth / 2;
+        const first = slides.current[0];
+        const second = slides.current[1];
+        const pitch = first && second ? second.offsetLeft - first.offsetLeft : 1;
+        let best = 0;
+        let bestD = Infinity;
+        slides.current.forEach((el, i) => {
+          if (!el) return;
+          const d = el.offsetLeft + el.offsetWidth / 2 - mid;
+          dists[i]?.set(d / pitch);
+          if (Math.abs(d) < bestD) {
+            bestD = Math.abs(d);
+            best = i;
+          }
+        });
+        setActive(best);
+      });
+    };
+    onScroll();
+    track.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      track.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [dists]);
+
+  // лента листается сама, пока её не трогают
+  const running = playing && !hold && inView && open == null && !reduced;
+  useEffect(() => {
+    if (!running) return undefined;
+    const t = setTimeout(() => goTo(active + 1), AUTOPLAY_MS);
+    return () => clearTimeout(t);
+  }, [running, active, goTo]);
+
+  const interact = () => {
+    setHold(true);
+    clearTimeout(releaseTimer.current);
+    releaseTimer.current = setTimeout(() => setHold(false), 3500);
+  };
+  useEffect(() => () => clearTimeout(releaseTimer.current), []);
+
+  // перетаскивание мышью
+  const onPointerDown = (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    const track = trackRef.current;
+    drag.current = { x: e.clientX, left: track.scrollLeft };
+    dragMoved.current = false;
+    const move = (ev) => {
+      const dx = ev.clientX - drag.current.x;
+      if (Math.abs(dx) > 5) {
+        dragMoved.current = true;
+        track.style.scrollSnapType = "none";
+        track.style.scrollBehavior = "auto";
+      }
+      if (dragMoved.current) track.scrollLeft = drag.current.left - dx;
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      track.style.scrollSnapType = "";
+      track.style.scrollBehavior = "";
+      if (dragMoved.current) {
+        const mid = track.scrollLeft + track.clientWidth / 2;
+        const nearest = slides.current.reduce(
+          (b, el, i) =>
+            el && Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid) < Math.abs(slides.current[b].offsetLeft + slides.current[b].offsetWidth / 2 - mid) ? i : b,
+          0,
+        );
+        goTo(nearest);
+      }
+      drag.current = null;
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  const openWork = (id, i) => {
+    if (dragMoved.current) return;
+    if (i !== active) goTo(i);
+    else setOpen(id);
+  };
   const openIndex = open == null ? -1 : WORKS.findIndex((w) => w.id === open);
   const close = useCallback(() => setOpen(null), []);
   const step = useCallback((d) => setOpen((id) => WORKS[(WORKS.findIndex((w) => w.id === id) + d + WORKS.length) % WORKS.length].id), []);
@@ -2183,48 +2266,174 @@ function Works({ onPick }) {
     onPick(service);
   };
 
-  const renderItem = (id, i, compact) => {
-    if (id === "cta") return <WorksCta key="cta" onPick={pick} compact={compact} />;
-    const work = workById(id);
-    const index = WORKS.indexOf(work);
-    return (
-      <motion.div
-        key={id}
-        initial={{ opacity: 0, y: 70, scale: 0.97 }}
-        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-        viewport={{ once: true, amount: 0.15 }}
-        transition={{ ...springSoft, delay: i * 0.08 }}
-      >
-        <WorkCard work={work} index={index} arch={i === 0} onOpen={setOpen} onPick={pick} compact={compact} />
-      </motion.div>
-    );
-  };
-
   return (
-    <section id="works" ref={ref} className="relative scroll-mt-20 overflow-hidden py-24 sm:py-32">
-      <div aria-hidden="true" className="pointer-events-none absolute right-[-10%] top-[10%] h-[40vmax] w-[40vmax] rounded-full bg-[#E7D6C5]/60 blur-[120px]" />
+    <section id="works" ref={sectionRef} className="relative scroll-mt-20 overflow-hidden py-24 sm:py-28">
+      <div aria-hidden="true" className="pointer-events-none absolute left-[20%] top-[30%] h-[36vmax] w-[36vmax] rounded-full bg-[#E7D6C5]/50 blur-[120px]" />
       <Container>
         <SectionHead
           eyebrow="Портфолио"
           title="Наши"
           italic="работы"
-          aside="Реальные гости Onix Barbershop после визита. Нажмите на фото, чтобы рассмотреть стрижку и записаться на такую же."
+          aside="Реальные гости Onix Barbershop после визита. Лента листается сама; потяните её или нажмите на фото, чтобы рассмотреть стрижку."
         />
-        <div className="mt-14 hidden grid-cols-3 items-start gap-6 sm:mt-20 lg:grid">
-          {WORK_COLUMNS_DESKTOP.map((col, c) => (
-            <motion.div key={c} className={`flex flex-col gap-6 ${c === 1 ? "mt-28" : c === 2 ? "mt-12" : ""}`} style={{ y: [yA, yB, yC][c] }}>
-              {col.map((id, i) => renderItem(id, i, false))}
-            </motion.div>
-          ))}
-        </div>
-        <div className="mt-12 grid grid-cols-2 items-start gap-3 sm:gap-5 lg:hidden">
-          {WORK_COLUMNS_MOBILE.map((col, c) => (
-            <div key={c} className={`flex flex-col gap-3 sm:gap-5 ${c === 1 ? "mt-10" : ""}`}>
-              {col.map((id, i) => renderItem(id, i, true))}
+      </Container>
+
+      <div
+        className="relative mt-12 sm:mt-16"
+        onPointerEnter={(e) => e.pointerType === "mouse" && setHold(true)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && setHold(false)}
+      >
+        <ul
+          ref={trackRef}
+          onPointerDown={onPointerDown}
+          onTouchStart={interact}
+          onWheel={interact}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight") {
+              e.preventDefault();
+              interact();
+              goTo(active + 1);
+            }
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              interact();
+              goTo(active - 1);
+            }
+          }}
+          tabIndex={0}
+          aria-label="Лента работ: стрелки влево и вправо листают фото"
+          className="relative flex cursor-grab snap-x snap-mandatory items-start gap-4 overflow-x-auto overscroll-x-contain px-[calc(50vw-34vw)] pb-6 pt-4 [-ms-overflow-style:none] [mask-image:linear-gradient(90deg,transparent,#000_7%,#000_93%,transparent)] [scrollbar-width:none] active:cursor-grabbing sm:gap-6 sm:px-[calc(50vw-150px)] lg:px-[calc(50vw-165px)] [&::-webkit-scrollbar]:hidden"
+        >
+          {WORKS.map((work, i) => {
+            const service = SERVICES.find((s) => s.id === work.service);
+            return (
+              <WorkSlide
+                key={work.id}
+                dist={dists[i]}
+                slideRef={(el) => (slides.current[i] = el)}
+                index={i}
+                active={active === i}
+                caption={
+                  <div className="mt-4 flex items-start justify-between gap-3 px-1">
+                    <div className="min-w-0">
+                      <span className="f-label block text-[11px] uppercase tracking-[0.14em] text-[#4F7A68]">Работа {String(i + 1).padStart(2, "0")}</span>
+                      <span className="f-display mt-1 block text-[1.2rem] leading-tight text-[#26332D] sm:text-[1.35rem]">{work.title}</span>
+                    </div>
+                    <span className="f-label shrink-0 pt-5 text-[12px] tracking-[0.06em] text-[#26332D]/60">{fmtPrice(service.price)}</span>
+                  </div>
+                }
+              >
+                <motion.figure
+                  initial="rest"
+                  animate={!fine && active === i ? "hover" : "rest"}
+                  whileHover="hover"
+                  className={`relative aspect-[3/4] overflow-hidden bg-[#E1E8E2] shadow-[0_30px_60px_-36px_rgba(38,51,45,0.5)] ${SLIDE_SHAPE}`}
+                >
+                  <motion.img
+                    src={work.src}
+                    alt={`${work.title} — работа Onix Barbershop`}
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                    className="absolute inset-0 h-full w-full select-none object-cover"
+                    style={{ objectPosition: work.pos }}
+                    variants={{ rest: { scale: 1.02 }, hover: { scale: 1.08 } }}
+                    transition={{ type: "spring", stiffness: 70, damping: 18 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openWork(work.id, i)}
+                    className="absolute inset-0 z-10"
+                    aria-label={active === i ? `Открыть фото: ${work.title}` : `Показать: ${work.title}`}
+                    data-cursor="view"
+                  />
+                  <motion.div
+                    className="absolute inset-x-0 bottom-0 z-20 flex justify-center p-4"
+                    variants={{ rest: { opacity: 0, y: 14, pointerEvents: "none" }, hover: { opacity: 1, y: 0, pointerEvents: "auto" } }}
+                    transition={{ type: "spring", stiffness: 200, damping: 22 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => pick(work.service)}
+                      className="f-label rounded-full bg-[#FAFBF8]/95 px-5 py-2.5 text-[12px] uppercase tracking-[0.1em] text-[#26332D] shadow-[0_10px_30px_-12px_rgba(38,51,45,0.6)] backdrop-blur"
+                    >
+                      Хочу так
+                    </button>
+                  </motion.div>
+                </motion.figure>
+              </WorkSlide>
+            );
+          })}
+          <WorkSlide
+            dist={dists[WORKS.length]}
+            slideRef={(el) => (slides.current[WORKS.length] = el)}
+            index={WORKS.length}
+            active={active === WORKS.length}
+            caption={
+              <div className="mt-4 px-1">
+                <span className="f-label block text-[11px] uppercase tracking-[0.14em] text-[#4F7A68]">Следующая</span>
+                <span className="f-display mt-1 block text-[1.2rem] leading-tight text-[#26332D] sm:text-[1.35rem]">Ваша стрижка</span>
+              </div>
+            }
+          >
+            <div className={`relative flex aspect-[3/4] flex-col items-center justify-center gap-6 bg-[#E7D6C5] p-8 text-center ${SLIDE_SHAPE}`}>
+              <p className="f-display text-[1.7rem] leading-snug text-[#26332D]">
+                Следующая работа <span className="italic text-[#4F7A68]">может быть вашей</span>
+              </p>
+              <PrimaryButton onClick={() => pick(null)}>Записаться</PrimaryButton>
             </div>
-          ))}
+          </WorkSlide>
+        </ul>
+      </div>
+
+      <Container className="mt-4 flex items-center gap-5">
+        <span className="f-label w-16 shrink-0 text-[13px] tabular-nums tracking-[0.08em] text-[#26332D]">
+          {String(active + 1).padStart(2, "0")}
+          <span className="text-[#26332D]/40"> / {String(count).padStart(2, "0")}</span>
+        </span>
+        <div className="relative h-px flex-1 overflow-hidden bg-[#26332D]/15">
+          <motion.span
+            key={`${active}-${running}`}
+            className="absolute inset-0 origin-left bg-[#4F7A68]"
+            initial={{ scaleX: running ? 0 : (active + 1) / count }}
+            animate={{ scaleX: running ? 1 : (active + 1) / count }}
+            transition={{ duration: running ? AUTOPLAY_MS / 1000 : 0.4, ease: running ? "linear" : "easeOut" }}
+          />
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => setPlaying((p) => !p)}
+            aria-label={playing ? "Остановить автолистание" : "Включить автолистание"}
+            className="grid h-11 w-11 place-items-center rounded-full border border-[#26332D]/20 text-[#26332D]"
+          >
+            {playing ? <Pause size={16} strokeWidth={1.8} /> : <Play size={16} strokeWidth={1.8} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              interact();
+              goTo(active - 1);
+            }}
+            aria-label="Предыдущая работа"
+            className="grid h-11 w-11 place-items-center rounded-full border border-[#26332D]/20 text-[#26332D]"
+          >
+            <ArrowLeft size={18} strokeWidth={1.6} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              interact();
+              goTo(active + 1);
+            }}
+            aria-label="Следующая работа"
+            className="grid h-11 w-11 place-items-center rounded-full bg-[#4F7A68] text-[#FAFBF8]"
+          >
+            <ArrowRight size={18} strokeWidth={1.6} />
+          </button>
         </div>
       </Container>
+
       <AnimatePresence>{openIndex >= 0 ? <Lightbox key="lightbox" index={openIndex} onClose={close} onStep={step} onPick={pick} /> : null}</AnimatePresence>
     </section>
   );
