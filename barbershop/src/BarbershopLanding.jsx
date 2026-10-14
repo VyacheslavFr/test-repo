@@ -851,8 +851,21 @@ function canvasTexture(w, h, draw) {
 function studioEnvironment(renderer) {
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = new THREE.Scene();
-  env.add(new THREE.Mesh(new THREE.BoxGeometry(12, 12, 12), new THREE.MeshBasicMaterial({ color: 0x8e9692, side: THREE.BackSide })));
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshBasicMaterial({ color: 0x2c3330 }));
+  // стены студии с вертикальным градиентом: светлый верх, тёмный низ — металл получает живой перелив
+  const room = new THREE.SphereGeometry(10, 48, 24);
+  const top = new THREE.Color(0xc4cbc7);
+  const mid = new THREE.Color(0x737b77);
+  const low = new THREE.Color(0x1c2120);
+  const colors = [];
+  const pos = room.attributes.position;
+  for (let i = 0; i < pos.count; i += 1) {
+    const t = pos.getY(i) / 10;
+    const c = t > 0 ? mid.clone().lerp(top, t) : mid.clone().lerp(low, Math.min(1, -t * 1.6));
+    colors.push(c.r, c.g, c.b);
+  }
+  room.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  env.add(new THREE.Mesh(room, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshBasicMaterial({ color: 0x222826 }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -5.9;
   env.add(floor);
@@ -866,276 +879,364 @@ function studioEnvironment(renderer) {
   softbox(3, 5, [-5.5, 1, 2], 2.6);
   softbox(3, 5, [5.5, 0.5, -1], 2);
   softbox(6, 1, [0, 0, -5.5], 1.4);
+  softbox(5, 3.5, [0.5, -0.5, 5.6], 0.05); // тёмный флаг за камерой: металл получает контраст, как в предметной съёмке
+  softbox(0.8, 5, [3.2, 0.5, 4.4], 3.2); // узкий стриплайт — блик вдоль лезвий
   const tex = pmrem.fromScene(env, 0.03).texture;
   pmrem.dispose();
   return tex;
 }
 
-function buildScissors() {
-  const steel = new THREE.MeshStandardMaterial({ color: srgb(0xe3e7e5), metalness: 1, roughness: 0.18 });
-  const satin = new THREE.MeshStandardMaterial({ color: srgb(0xaab2ae), metalness: 1, roughness: 0.34 });
-  const bladeShape = new THREE.Shape();
-  bladeShape.moveTo(-0.14, -0.035);
-  bladeShape.lineTo(-0.14, 0.07);
-  bladeShape.quadraticCurveTo(0.5, 0.115, 1.0, 0.075);
-  bladeShape.quadraticCurveTo(1.35, 0.045, 1.56, 0.0);
-  bladeShape.quadraticCurveTo(1.2, -0.015, 0.6, -0.035);
-  bladeShape.lineTo(-0.14, -0.035);
-  const ex = { depth: 0.028, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 24 };
-  const tube = (pts, r, mat) =>
-    new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), 32, r, 12, false), mat);
+const deg = (d) => (d * Math.PI) / 180;
 
-  // половинка ножниц: лезвие с одной стороны оси, кольцо — с другой
+/** Профессиональные ножницы: плоская сталь с фасками, смещённые кольца с силиконовыми вставками, упор для пальца, винт с камнем. */
+function buildScissors() {
+  const steel = new THREE.MeshStandardMaterial({ color: srgb(0xd9dedb), metalness: 1, roughness: 0.15 });
+  const mirror = new THREE.MeshStandardMaterial({ color: srgb(0xf8faf9), metalness: 1, roughness: 0.05 });
+  const satin = new THREE.MeshStandardMaterial({ color: srgb(0xb4bbb7), metalness: 1, roughness: 0.36 });
+  const silicone = new THREE.MeshStandardMaterial({ color: srgb(0x34403a), roughness: 0.75 });
+  const jewel = new THREE.MeshPhysicalMaterial({ color: srgb(0x4f7a68), roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04 });
+  const ex = { depth: 0.035, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 3, curveSegments: 40 };
+  const face = ex.depth / 2 + ex.bevelThickness;
+
+  // контур половинки: лезвие вправо от оси, хвостовик и кольцо — влево-вниз
+  const halfShape = ({ c, ro, hole, tang }) => {
+    const at = (a) => [c[0] + ro * Math.cos(deg(a)), c[1] + ro * Math.sin(deg(a))];
+    const s = new THREE.Shape();
+    s.moveTo(1.75, 0.012);
+    s.quadraticCurveTo(1.0, 0.13, 0.15, 0.115);
+    s.quadraticCurveTo(-0.05, 0.11, -0.2, 0.05);
+    const p = at(70);
+    s.quadraticCurveTo(-0.55, -0.06, p[0], p[1]);
+    if (tang) {
+      s.absarc(c[0], c[1], ro, deg(70), deg(235), false);
+      s.quadraticCurveTo(c[0] - 0.22, c[1] - 0.36, c[0] - 0.36, c[1] - 0.42);
+      s.quadraticCurveTo(c[0] - 0.41, c[1] - 0.44, c[0] - 0.37, c[1] - 0.37);
+      const t2 = at(265);
+      s.quadraticCurveTo(c[0] - 0.13, c[1] - 0.3, t2[0], t2[1]);
+      s.absarc(c[0], c[1], ro, deg(265), deg(370), false);
+    } else {
+      s.absarc(c[0], c[1], ro, deg(70), deg(370), false);
+    }
+    s.quadraticCurveTo(-0.4, -0.22, 0.0, -0.06);
+    s.lineTo(0.45, -0.03);
+    s.quadraticCurveTo(1.2, -0.01, 1.75, 0.012);
+    const h = new THREE.Path();
+    h.absellipse(c[0], c[1], hole[0], hole[1], 0, Math.PI * 2, true);
+    s.holes.push(h);
+    return s;
+  };
+  // полированная кромка вдоль режущей стороны
+  const edgeShape = new THREE.Shape();
+  edgeShape.moveTo(0.32, -0.03);
+  edgeShape.quadraticCurveTo(1.2, -0.012, 1.72, 0.011);
+  edgeShape.quadraticCurveTo(1.2, 0.012, 0.32, -0.004);
+  edgeShape.lineTo(0.32, -0.03);
+
   const half = (sign, z, ring) => {
     const g = new THREE.Group();
-    const geo = new THREE.ExtrudeGeometry(bladeShape, ex);
+    const geo = new THREE.ExtrudeGeometry(halfShape(ring), ex);
     geo.translate(0, 0, -ex.depth / 2);
-    const blade = new THREE.Mesh(geo, steel);
-    blade.scale.y = sign;
-    g.add(blade);
-    const edge = [ring.x + ring.r * 0.92, -sign * (Math.abs(ring.y) - ring.r * 0.4)];
-    g.add(tube([[-0.1, -sign * 0.01, 0], [-0.3, -sign * 0.1, 0], edge.concat(0)], 0.03, satin));
-    const torus = new THREE.Mesh(new THREE.TorusGeometry(ring.r, 0.034, 16, 56), satin);
-    torus.position.set(ring.x, -sign * Math.abs(ring.y), 0);
-    g.add(torus);
-    if (ring.rest) {
-      g.add(
-        tube(
-          [
-            [ring.x - 0.08, -sign * (Math.abs(ring.y) + ring.r * 0.9), 0],
-            [ring.x - 0.22, -sign * (Math.abs(ring.y) + 0.3), 0],
-            [ring.x - 0.36, -sign * (Math.abs(ring.y) + 0.34), 0],
-          ],
-          0.022,
-          satin,
-        ),
-      );
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 12), satin);
-      tip.position.set(ring.x - 0.36, -sign * (Math.abs(ring.y) + 0.34), 0);
-      g.add(tip);
-    }
+    const body = new THREE.Mesh(geo, steel);
+    const edge = new THREE.Mesh(new THREE.ShapeGeometry(edgeShape, 24), mirror);
+    edge.position.z = face + 0.0006;
+    const avg = (ring.hole[0] + ring.hole[1]) / 2;
+    const insert = new THREE.Mesh(new THREE.TorusGeometry(avg - 0.012, 0.024, 16, 64), silicone);
+    insert.scale.set(ring.hole[0] / avg, ring.hole[1] / avg, 1);
+    insert.position.set(ring.c[0], ring.c[1], 0);
+    const inner = new THREE.Group();
+    inner.add(body, edge, insert);
+    inner.scale.y = sign;
+    g.add(inner);
     g.position.z = z;
     return g;
   };
-  const a = half(1, 0.018, { x: -0.72, y: 0.3, r: 0.17, rest: true });
-  const b = half(-1, -0.018, { x: -0.68, y: 0.28, r: 0.14 });
-  const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.1, 24), satin);
-  screw.rotation.x = Math.PI / 2;
-  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.012, 0.012), new THREE.MeshStandardMaterial({ color: srgb(0x2a312e) }));
-  slot.position.z = 0.051;
+  const a = half(1, 0.024, { c: [-0.98, -0.36], ro: 0.23, hole: [0.155, 0.135], tang: true });
+  const b = half(-1, -0.024, { c: [-0.9, -0.3], ro: 0.2, hole: [0.13, 0.115], tang: false });
+
+  // винт регулировки натяжения: шайба, рифлёная головка и камень
+  const pivot = new THREE.Group();
+  const cyl = (r, h, mat, z) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 40), mat);
+    m.rotation.x = Math.PI / 2;
+    m.position.z = z;
+    pivot.add(m);
+  };
+  cyl(0.095, 0.012, satin, 0.052);
+  cyl(0.072, 0.03, steel, 0.072);
+  const knurl = new THREE.Mesh(new THREE.TorusGeometry(0.072, 0.008, 8, 48), satin);
+  knurl.position.z = 0.072;
+  pivot.add(knurl);
+  const stone = new THREE.Mesh(new THREE.SphereGeometry(0.04, 24, 16), jewel);
+  stone.position.z = 0.088;
+  stone.scale.z = 0.6;
+  pivot.add(stone);
+  cyl(0.07, 0.03, satin, -0.062);
 
   const inner = new THREE.Group();
-  inner.add(a, b, screw, slot);
-  inner.position.x = -0.22;
+  inner.add(b, a, pivot);
+  inner.position.x = -0.19;
   const tilt = new THREE.Group();
   tilt.add(inner);
-  tilt.rotation.z = 0.55;
-  tilt.scale.setScalar(1.05);
-  const snip = (deg) => {
-    const r = THREE.MathUtils.degToRad(deg / 2);
+  tilt.rotation.z = 0.5;
+  tilt.scale.setScalar(0.92);
+  const snip = (d) => {
+    const r = deg(d / 2);
     a.rotation.z = r;
     b.rotation.z = -r;
   };
   snip(10);
-  return { object: tilt, tiltX: 0.25, snip };
+  return { object: tilt, tiltX: 0.28, snip };
 }
 
+/** Гребень для стрижки: черепаховый ацетат, утолщённый корпус, зубья с сужением, отверстие и сантиметровая шкала. */
 function buildComb() {
   const tortoise = canvasTexture(512, 256, (ctx, w, h) => {
     ctx.fillStyle = "#8A5636";
     ctx.fillRect(0, 0, w, h);
     const rand = mulberry32(77);
-    for (let i = 0; i < 70; i += 1) {
+    for (let i = 0; i < 90; i += 1) {
       const x = rand() * w;
       const y = rand() * h;
-      const r = 10 + rand() * 46;
+      const r = 8 + rand() * 44;
       const dark = rand() > 0.4;
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, dark ? "rgba(52,24,10,0.75)" : "rgba(214,150,86,0.6)");
       g.addColorStop(1, dark ? "rgba(52,24,10,0)" : "rgba(214,150,86,0)");
       ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.ellipse(x, y, r * 1.6, r, rand() * Math.PI, 0, Math.PI * 2);
+      ctx.ellipse(x, y, r * 1.7, r, rand() * Math.PI, 0, Math.PI * 2);
       ctx.fill();
     }
   });
   tortoise.wrapS = THREE.RepeatWrapping;
   tortoise.wrapT = THREE.RepeatWrapping;
   tortoise.repeat.set(0.42, 1.1);
-  const acetate = new THREE.MeshPhysicalMaterial({ map: tortoise, roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.1 });
+  const acetate = new THREE.MeshPhysicalMaterial({ map: tortoise, roughness: 0.28, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08 });
 
-  const W = 2.4;
-  const top = 0.3;
+  const W = 2.5;
+  const top = 0.34;
   const base = -0.02;
-  const tipY = -0.44;
+  const tipY = -0.48;
   const s = new THREE.Shape();
   s.moveTo(-W / 2, base);
-  s.lineTo(-W / 2, top - 0.08);
-  s.quadraticCurveTo(-W / 2, top, -W / 2 + 0.08, top);
-  s.lineTo(W / 2 - 0.08, top);
-  s.quadraticCurveTo(W / 2, top, W / 2, top - 0.08);
-  s.lineTo(W / 2, tipY + 0.02);
-  s.lineTo(W / 2 - 0.06, tipY);
-  let x = W / 2 - 0.06;
-  // справа частые зубья, слева редкие — как у настоящего гребня для стрижки
-  while (x > -W / 2 + 0.2) {
+  s.lineTo(-W / 2, top - 0.1);
+  s.quadraticCurveTo(-W / 2, top, -W / 2 + 0.1, top);
+  s.lineTo(W / 2 - 0.1, top);
+  s.quadraticCurveTo(W / 2, top, W / 2, top - 0.1);
+  s.lineTo(W / 2, tipY + 0.05);
+  s.quadraticCurveTo(W / 2, tipY, W / 2 - 0.035, tipY);
+  s.lineTo(W / 2 - 0.065, tipY + 0.02);
+  let x = W / 2 - 0.065;
+  // справа частые зубья, слева редкие; каждый зуб сужается к кончику, между зубьями — скруглённое основание
+  while (x > -W / 2 + 0.22) {
     const fine = x > 0;
-    const gap = fine ? 0.036 : 0.07;
-    const tw = fine ? 0.03 : 0.046;
+    const gap = fine ? 0.034 : 0.064;
+    const tw = fine ? 0.032 : 0.05;
+    const taper = tw * 0.22;
     s.lineTo(x, base);
-    s.lineTo(x - gap, base);
-    s.lineTo(x - gap, tipY + 0.025);
-    s.quadraticCurveTo(x - gap - tw / 2, tipY - 0.012, x - gap - tw, tipY + 0.025);
+    s.quadraticCurveTo(x - gap / 2, base + 0.035, x - gap, base);
+    s.lineTo(x - gap - taper, tipY + 0.03);
+    s.quadraticCurveTo(x - gap - tw / 2, tipY - 0.014, x - gap - tw + taper, tipY + 0.03);
     x -= gap + tw;
   }
   s.lineTo(x, base);
-  s.lineTo(-W / 2 + 0.06, base);
-  s.lineTo(-W / 2 + 0.06, tipY);
-  s.lineTo(-W / 2, tipY + 0.02);
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 2, curveSegments: 6 });
-  geo.translate(0, 0.07, -0.025);
+  s.lineTo(-W / 2 + 0.065, base);
+  s.lineTo(-W / 2 + 0.065, tipY + 0.02);
+  s.quadraticCurveTo(-W / 2, tipY, -W / 2, tipY + 0.05);
+  const hole = new THREE.Path();
+  hole.absarc(-W / 2 + 0.13, 0.16, 0.055, 0, Math.PI * 2, true);
+  s.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.006, bevelSegments: 2, curveSegments: 6 });
+  geo.translate(0, 0.07, -0.02);
+
+  // утолщённый корпус-спинка
+  const rib = new THREE.Shape();
+  const rx0 = -W / 2 + 0.24;
+  const rx1 = W / 2 - 0.02;
+  rib.moveTo(rx0, base + 0.02);
+  rib.lineTo(rx1 - 0.06, base + 0.02);
+  rib.quadraticCurveTo(rx1, base + 0.02, rx1, base + 0.08);
+  rib.lineTo(rx1, top - 0.08);
+  rib.quadraticCurveTo(rx1, top - 0.02, rx1 - 0.06, top - 0.02);
+  rib.lineTo(rx0, top - 0.02);
+  rib.quadraticCurveTo(rx0 - 0.04, (top + base) / 2, rx0, base + 0.02);
+  const ribGeo = new THREE.ExtrudeGeometry(rib, {
+    depth: 0.07,
+    bevelEnabled: true,
+    bevelThickness: 0.014,
+    bevelSize: 0.012,
+    bevelSegments: 4,
+    curveSegments: 12,
+  });
+  ribGeo.translate(0, 0.07, -0.035);
+
+  // сантиметровая шкала на спинке, как на настоящих гребнях
+  const rulerW = rx1 - rx0 - 0.12;
+  const ruler = canvasTexture(1024, 96, (ctx, w, h) => {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(250,246,238,0.88)";
+    const marks = 170;
+    for (let i = 0; i <= marks; i += 1) {
+      const px = 8 + (i * (w - 16)) / marks;
+      const len = i % 10 === 0 ? 44 : i % 5 === 0 ? 30 : 18;
+      ctx.fillRect(px - 1, 0, 2, len);
+      if (i % 10 === 0 && i < marks) {
+        ctx.font = "600 26px Manrope, Arial, sans-serif";
+        ctx.fillText(String(i / 10), px + 5, 78);
+      }
+    }
+  });
+  const rulerMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(rulerW, rulerW * (96 / 1024)),
+    new THREE.MeshStandardMaterial({ map: ruler, transparent: true, roughness: 0.5, depthWrite: false }),
+  );
+  rulerMesh.position.set((rx0 + rx1) / 2 + 0.02, top + 0.02 - (rulerW * (96 / 1024)) / 2, 0.05);
+
   const tilt = new THREE.Group();
-  tilt.add(new THREE.Mesh(geo, acetate));
+  tilt.add(new THREE.Mesh(geo, acetate), new THREE.Mesh(ribGeo, acetate), rulerMesh);
   tilt.rotation.z = -0.14;
   return { object: tilt, tiltX: 0.38 };
 }
 
+/** Фен в духе Dyson Supersonic: полый цилиндр-кольцо с мотором в ручке, сетка фильтра, медные акценты. */
 function buildDryer() {
-  const shell = new THREE.MeshPhysicalMaterial({ color: srgb(0x5c8a76), roughness: 0.34, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.2 });
-  const graphite = new THREE.MeshStandardMaterial({ color: srgb(0x252d2a), roughness: 0.42, metalness: 0.25 });
-  const chrome = new THREE.MeshStandardMaterial({ color: srgb(0xe6e9e7), metalness: 1, roughness: 0.16 });
-  const rubber = new THREE.MeshStandardMaterial({ color: srgb(0x1d2622), roughness: 0.75 });
-  const v2 = (pts) => pts.map(([r, y]) => new THREE.Vector2(r, y));
+  const shell = new THREE.MeshPhysicalMaterial({ color: srgb(0x6f9583), roughness: 0.36, metalness: 0.12, clearcoat: 0.7, clearcoatRoughness: 0.22 });
+  const copper = new THREE.MeshStandardMaterial({ color: srgb(0xc58052), metalness: 1, roughness: 0.26 });
+  const nickel = new THREE.MeshStandardMaterial({ color: srgb(0xc3c8c5), metalness: 0.9, roughness: 0.3 });
+  const tunnel = new THREE.MeshStandardMaterial({ color: srgb(0x9aa39e), metalness: 0.8, roughness: 0.34, side: THREE.BackSide });
+  const dark = new THREE.MeshStandardMaterial({ color: srgb(0x2b3430), roughness: 0.55 });
+  const white = new THREE.MeshStandardMaterial({ color: srgb(0xf3f3ef), roughness: 0.35 });
 
-  // корпус и сопло — тела вращения вдоль оси Y; потом кладём их на бок соплом вправо
-  const barrel = new THREE.Group();
-  barrel.add(
-    new THREE.Mesh(
-      new THREE.LatheGeometry(
-        v2([
-          [0, -1],
-          [0.3, -1],
-          [0.42, -0.98],
-          [0.48, -0.93],
-          [0.5, -0.85],
-          [0.5, 0.25],
-          [0.48, 0.36],
-          [0.43, 0.44],
-        ]),
-        64,
-      ),
-      shell,
-    ),
-  );
-  barrel.add(
-    new THREE.Mesh(
-      new THREE.LatheGeometry(
-        v2([
-          [0.43, 0.42],
-          [0.4, 0.55],
-          [0.33, 0.8],
-          [0.3, 0.98],
-          [0.27, 1.02],
-          [0.2, 1.02],
-          [0.02, 1.0],
-        ]),
-        64,
-      ),
-      graphite,
-    ),
-  );
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.026, 12, 64), chrome);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = -0.97;
-  barrel.add(ring);
-  const grillTex = canvasTexture(256, 256, (ctx, w) => {
-    ctx.fillStyle = "#2a322f";
-    ctx.fillRect(0, 0, w, w);
-    ctx.strokeStyle = "#0f1412";
-    ctx.lineWidth = 6;
-    for (let i = 0; i < 36; i += 1) {
-      const t = (i / 36) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.moveTo(w / 2 + Math.cos(t) * 30, w / 2 + Math.sin(t) * 30);
-      ctx.lineTo(w / 2 + Math.cos(t) * 112, w / 2 + Math.sin(t) * 112);
-      ctx.stroke();
+  // головка: толстостенная труба, в которую видно насквозь
+  const R = 1;
+  const rIn = 0.6;
+  const L = 2.2;
+  const head = new THREE.Group();
+  head.add(new THREE.Mesh(new THREE.CylinderGeometry(R, R, L - 0.08, 128, 1, true), shell));
+  head.add(new THREE.Mesh(new THREE.CylinderGeometry(rIn, rIn, L, 96, 1, true), tunnel));
+  const ringFace = (y, mat, flip) => {
+    const m = new THREE.Mesh(new THREE.RingGeometry(rIn + 0.02, R - 0.04, 128), mat);
+    m.rotation.x = flip ? Math.PI / 2 : -Math.PI / 2;
+    m.position.y = y;
+    head.add(m);
+  };
+  ringFace(L / 2, copper, false);
+  ringFace(-L / 2, shell, true);
+  [L / 2 - 0.04, -L / 2 + 0.04].forEach((y, i) => {
+    const lip = new THREE.Mesh(new THREE.TorusGeometry(R - 0.04, 0.04, 16, 128), i === 0 ? copper : shell);
+    lip.rotation.x = Math.PI / 2;
+    lip.position.y = y;
+    head.add(lip);
+    const innerLip = new THREE.Mesh(new THREE.TorusGeometry(rIn + 0.02, 0.02, 12, 96), nickel);
+    innerLip.rotation.x = Math.PI / 2;
+    innerLip.position.y = y + (i === 0 ? 0.04 : -0.04);
+    head.add(innerLip);
+  });
+  // щель, из которой выходит воздух
+  const slot = new THREE.Mesh(new THREE.TorusGeometry(rIn + 0.09, 0.012, 8, 128), dark);
+  slot.rotation.x = Math.PI / 2;
+  slot.position.y = L / 2 + 0.002;
+  head.add(slot);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.004, R + 0.004, 0.05, 128, 1, true), copper);
+  band.position.y = -L / 2 + 0.32;
+  head.add(band);
+  head.rotation.z = -Math.PI / 2;
+
+  // ручка: корпус мотора, кнопки, сетка фильтра, торец со шнуром
+  const rh = 0.5;
+  const yTop = -0.55;
+  const yCage = -2.3;
+  const yBottom = -3.95;
+  const handle = new THREE.Group();
+  const seg = (r, y0, y1, mat, open = false) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, y0 - y1, 96, 1, open), mat);
+    m.position.y = (y0 + y1) / 2;
+    handle.add(m);
+    return m;
+  };
+  seg(rh, yTop, yCage, shell);
+  const mesh = canvasTexture(256, 128, (ctx, w, h) => {
+    ctx.fillStyle = "#c9cfcc";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#26302c";
+    for (let row = 0; row < 8; row += 1) {
+      for (let col = 0; col < 16; col += 1) {
+        ctx.beginPath();
+        ctx.arc(8 + col * 16 + (row % 2) * 8, 8 + row * 16, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   });
-  const grill = new THREE.Mesh(new THREE.CircleGeometry(0.42, 48), new THREE.MeshStandardMaterial({ map: grillTex, roughness: 0.6 }));
-  grill.rotation.x = Math.PI / 2;
-  grill.position.y = -1.002;
-  barrel.add(grill);
-  const drawLogo = (ctx, w, h) => {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    ctx.translate(w / 2, h / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = "rgba(250,251,248,0.9)";
-    ctx.font = "italic 500 92px 'Lora', Georgia, serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("Onix", 0, 0);
-  };
-  const logoTex = canvasTexture(256, 512, drawLogo);
-  document.fonts?.load("italic 500 92px 'Lora'").then(() => {
-    drawLogo(logoTex.image.getContext("2d"), 256, 512);
-    logoTex.needsUpdate = true;
-  });
-  const logo = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.503, 0.503, 0.6, 24, 1, true, -0.45, 0.9),
-    new THREE.MeshStandardMaterial({ map: logoTex, transparent: true, roughness: 0.4, depthWrite: false }),
+  mesh.wrapS = THREE.RepeatWrapping;
+  mesh.wrapT = THREE.RepeatWrapping;
+  mesh.repeat.set(5, 3);
+  seg(rh + 0.006, yCage, yBottom, new THREE.MeshStandardMaterial({ map: mesh, metalness: 0.75, roughness: 0.38 }), true);
+  seg(rh - 0.03, yCage, yBottom, dark);
+  seg(rh + 0.014, yCage + 0.03, yCage - 0.03, copper, true);
+  seg(rh + 0.014, yBottom + 0.03, yBottom - 0.03, copper, true);
+  const cap = new THREE.Mesh(
+    new THREE.LatheGeometry(
+      [
+        [rh, 0],
+        [rh, -0.12],
+        [rh - 0.05, -0.21],
+        [0.2, -0.25],
+        [0.0, -0.25],
+      ].map(([r, y]) => new THREE.Vector2(r, y)),
+      96,
+    ),
+    shell,
   );
-  logo.position.y = -0.3;
-  barrel.add(logo);
-  barrel.rotation.z = -Math.PI / 2;
-
-  const hs = new THREE.Shape();
-  const hw = 0.18;
-  const r = 0.14;
-  hs.moveTo(-hw, -0.15);
-  hs.lineTo(-hw, -1.42 + r);
-  hs.quadraticCurveTo(-hw, -1.42, -hw + r, -1.42);
-  hs.lineTo(hw - r, -1.42);
-  hs.quadraticCurveTo(hw, -1.42, hw, -1.42 + r);
-  hs.lineTo(hw, -0.15);
-  const hGeo = new THREE.ExtrudeGeometry(hs, { depth: 0.24, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 4, curveSegments: 12 });
-  hGeo.translate(0, 0, -0.12);
-  const handle = new THREE.Mesh(hGeo, shell);
-  handle.position.x = -0.12;
-  handle.rotation.z = -0.12;
-  const button = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.24, 0.05), new THREE.MeshStandardMaterial({ color: srgb(0xf2f2ee), roughness: 0.4 }));
-  button.position.set(0, -0.55, 0.17);
-  handle.add(button);
-  const led = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 12), new THREE.MeshBasicMaterial({ color: srgb(0x5fd39a) }));
-  led.position.set(0, -0.8, 0.17);
-  handle.add(led);
-  const relief = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.24, 16), rubber);
-  relief.position.set(0, -1.55, 0);
+  cap.position.y = yBottom;
+  handle.add(cap);
+  // кнопки нагрева и скорости и ползунок питания — на стороне, обращённой к руке
+  const pill = (w, h, y, mat, side = -1) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, h, w), mat);
+    m.position.set(side * (rh + 0.012), y, 0);
+    handle.add(m);
+  };
+  pill(0.16, 0.34, -0.95, white);
+  const roundBtn = (y) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.04, 32), white);
+    m.rotation.z = Math.PI / 2;
+    m.position.set(-(rh + 0.008), y, 0);
+    handle.add(m);
+  };
+  roundBtn(-1.38);
+  roundBtn(-1.62);
+  [-1.86, -1.93, -2.0].forEach((y, i) => {
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 10), new THREE.MeshBasicMaterial({ color: srgb(i === 0 ? 0x5fd39a : 0xf3f3ef) }));
+    led.position.set(-(rh + 0.006), y, 0);
+    handle.add(led);
+  });
+  pill(0.12, 0.42, -1.2, copper, 1); // кнопка холодного обдува спереди
+  const relief = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.3, 24), dark);
+  relief.position.y = yBottom - 0.36;
   handle.add(relief);
   const cable = new THREE.Mesh(
     new THREE.TubeGeometry(
       new THREE.CatmullRomCurve3(
         [
-          [0, -1.62, 0],
-          [0.02, -1.85, 0.06],
-          [-0.18, -2.02, 0.18],
-          [-0.5, -2.05, 0.12],
+          [0, yBottom - 0.48, 0],
+          [0.04, yBottom - 0.8, 0.08],
+          [-0.22, yBottom - 1.05, 0.22],
+          [-0.6, yBottom - 1.1, 0.16],
         ].map((p) => new THREE.Vector3(...p)),
       ),
-      40,
-      0.034,
-      10,
+      48,
+      0.045,
+      12,
       false,
     ),
-    rubber,
+    dark,
   );
   handle.add(cable);
 
   const body = new THREE.Group();
-  body.add(barrel, handle);
+  body.add(head, handle);
+  body.scale.setScalar(0.47);
   body.position.y = 0.72;
-  body.scale.setScalar(0.92);
-  return { object: body, tiltX: 0.12 };
+  return { object: body, tiltX: 0.1 };
 }
 
 /** Правая половина героя: ножницы → гребень → фен, каждый крутится в 3D. */
@@ -1167,7 +1268,7 @@ function ToolsShowcase({ ready, progress }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1;
+    renderer.toneMappingExposure = 1.12;
 
     const scene = new THREE.Scene();
     scene.environment = studioEnvironment(renderer);
@@ -1397,23 +1498,8 @@ function ToolsShowcase({ ready, progress }) {
           </span>
         </motion.div>
 
-        <motion.div {...lateIn(1.2)} className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
-          <div className="min-w-0">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={tool.key}
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ type: "spring", stiffness: 160, damping: 20 }}
-              >
-                <span className="f-label block text-[11px] uppercase tracking-[0.14em] text-[#4F7A68]">{tool.n} / 03</span>
-                <span className="f-display block text-4xl font-medium leading-none text-[#26332D]">{tool.name}</span>
-                <span className="f-label mt-1 block text-[12px] uppercase tracking-[0.1em] text-[#26332D]/60">{tool.spec}</span>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-          <div className="pointer-events-auto flex shrink-0 gap-2 pb-1">
+        <motion.div {...lateIn(1.2)} className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-6">
+          <div className="pointer-events-auto flex shrink-0 gap-2">
             {SHOWCASE.map((t, i) => (
               <button
                 key={t.key}
