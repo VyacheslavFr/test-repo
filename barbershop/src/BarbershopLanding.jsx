@@ -137,6 +137,7 @@ const RITUAL = [
     n: "01",
     icon: ScanFace,
     title: "Консультация",
+    prop: "ручное зеркало",
     min: 5,
     text: "Мастер смотрит на форму головы, рост волос и то, как вы обычно укладываетесь. Результат обсуждаем до первого щелчка ножниц.",
   },
@@ -144,12 +145,34 @@ const RITUAL = [
     n: "02",
     icon: Droplets,
     title: "Мытьё и массаж",
+    prop: "флакон шампуня",
     min: 10,
     text: "Шампунь под тип кожи головы и массаж. Чистые волосы ложатся по своему естественному направлению.",
   },
-  { n: "03", icon: Scissors, title: "Стрижка", min: 35, text: "Ножницы, машинка, бритва по контуру. Работаем столько, сколько требует форма." },
-  { n: "04", icon: Flame, title: "Горячее полотенце", min: 5, text: "Полотенце при 60 °C раскрывает поры и снимает раздражение после бритвы." },
-  { n: "05", icon: Wind, title: "Укладка", min: 5, text: "Подбираем средство и показываем, как повторить укладку дома за две минуты." },
+  {
+    n: "03",
+    icon: Scissors,
+    title: "Стрижка",
+    prop: "машинка для стрижки",
+    min: 35,
+    text: "Ножницы, машинка, бритва по контуру. Работаем столько, сколько требует форма.",
+  },
+  {
+    n: "04",
+    icon: Flame,
+    title: "Горячее полотенце",
+    prop: "свёрнутое горячее полотенце",
+    min: 5,
+    text: "Полотенце при 60 °C раскрывает поры и снимает раздражение после бритвы.",
+  },
+  {
+    n: "05",
+    icon: Wind,
+    title: "Укладка",
+    prop: "баночка глины для укладки",
+    min: 5,
+    text: "Подбираем средство и показываем, как повторить укладку дома за две минуты.",
+  },
 ];
 
 const MASTERS = [
@@ -2368,12 +2391,869 @@ function Works({ onPick }) {
   );
 }
 
+/* ─────────────── Ритуал: предметы этапов в 3D ─────────────── */
+
+/** Тело вращения: точки профиля идут снизу вверх, тогда нормали смотрят наружу. */
+const lathe = (pts, segments = 96) =>
+  new THREE.LatheGeometry(
+    pts.map(([r, y]) => new THREE.Vector2(r, y)),
+    segments,
+  );
+
+/** Текстура с надписями: перерисовывается, когда догрузятся Lora и Manrope. */
+function labelTexture(w, h, draw) {
+  const tex = canvasTexture(w, h, draw);
+  const redraw = () => {
+    draw(tex.image.getContext("2d"), w, h);
+    tex.needsUpdate = true;
+  };
+  if (typeof document !== "undefined" && document.fonts) {
+    Promise.all([document.fonts.load('italic 500 80px "Lora"'), document.fonts.load('600 40px "Manrope"')]).then(redraw, () => {});
+    document.fonts.ready.then(redraw, () => {});
+  }
+  return tex;
+}
+
+function softSpot(alpha) {
+  return canvasTexture(256, 256, (ctx, w) => {
+    const g = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+    g.addColorStop(0, `rgba(38,51,45,${alpha})`);
+    g.addColorStop(0.55, `rgba(38,51,45,${alpha * 0.35})`);
+    g.addColorStop(1, "rgba(38,51,45,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, w);
+  });
+}
+
+/** Подиум из травертина: слоистые прожилки, поры и мягкая фаска по кромке. */
+function buildPedestal() {
+  const draw = (ctx, w, h) => {
+    const rnd = mulberry32(21);
+    ctx.fillStyle = "#E6DDCF";
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 80; i += 1) {
+      ctx.fillStyle = rnd() < 0.6 ? `rgba(176,152,120,${0.12 + rnd() * 0.3})` : `rgba(255,252,246,${0.3 + rnd() * 0.4})`;
+      ctx.fillRect(0, rnd() * h, w, 0.6 + rnd() * 3.2);
+    }
+    for (let i = 0; i < 900; i += 1) {
+      ctx.fillStyle = `rgba(132,114,90,${0.1 + rnd() * 0.3})`;
+      ctx.beginPath();
+      ctx.ellipse(rnd() * w, rnd() * h, 0.8 + rnd() * 4.2, 0.5 + rnd() * 1.1, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+  const sideTex = canvasTexture(1024, 256, draw);
+  sideTex.wrapS = THREE.RepeatWrapping;
+  sideTex.repeat.set(3, 1);
+  const topTex = canvasTexture(512, 512, draw);
+  const R = 0.9;
+  const H = 0.26;
+  const b = 0.035;
+  const pts = [
+    [R - b, -H],
+    [R - b * 0.3, -H + b * 0.3],
+    [R, -H + b],
+  ];
+  for (let k = 1; k < 10; k += 1) pts.push([R, -H + b + ((H - 2 * b) * k) / 10]);
+  pts.push([R, -b], [R - b * 0.3, -b * 0.3], [R - b, 0]);
+  const group = new THREE.Group();
+  group.add(new THREE.Mesh(lathe(pts, 160), new THREE.MeshStandardMaterial({ map: sideTex, color: srgb(0xd6cdbf), roughness: 0.74 })));
+  const top = new THREE.Mesh(new THREE.CircleGeometry(R - b, 160), new THREE.MeshStandardMaterial({ map: topTex, color: srgb(0xe2dacd), roughness: 0.66 }));
+  top.rotation.x = -Math.PI / 2;
+  group.add(top);
+  const bottom = top.clone();
+  bottom.rotation.x = Math.PI / 2;
+  bottom.position.y = -H;
+  group.add(bottom);
+  return { object: group, height: H, radius: R };
+}
+
+/** Ручное зеркало для консультации: лакированная спинка, латунный кант, медальон и точёная ручка. */
+function buildMirror() {
+  const lacquer = new THREE.MeshPhysicalMaterial({ color: srgb(0x2f4a3f), roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.06 });
+  const brass = new THREE.MeshStandardMaterial({ color: srgb(0xd6ac74), metalness: 1, roughness: 0.2 });
+  const room = canvasTexture(256, 256, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, w * 0.35, h);
+    g.addColorStop(0, "#F6F8F5");
+    g.addColorStop(0.5, "#D9E2DC");
+    g.addColorStop(1, "#A9B7AF");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(-0.7);
+    const streak = ctx.createLinearGradient(-w * 0.2, 0, w * 0.2, 0);
+    streak.addColorStop(0, "rgba(255,255,255,0)");
+    streak.addColorStop(0.5, "rgba(255,255,255,0.75)");
+    streak.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = streak;
+    ctx.fillRect(-w * 0.2 - 30, -h, w * 0.18, h * 2);
+    ctx.fillRect(w * 0.02, -h, w * 0.08, h * 2);
+    ctx.restore();
+  });
+  const glass = new THREE.MeshStandardMaterial({
+    color: srgb(0x5c6561),
+    metalness: 1,
+    roughness: 0.04,
+    emissive: 0xffffff,
+    emissiveMap: room,
+    emissiveIntensity: 0.78,
+  });
+  const R = 0.58;
+  const head = new THREE.Group();
+  const shell = new THREE.Mesh(
+    lathe(
+      [
+        [0, -0.09],
+        [0.3, -0.085],
+        [0.5, -0.066],
+        [R + 0.04, -0.034],
+        [R + 0.062, 0.0],
+        [R + 0.056, 0.026],
+        [R + 0.02, 0.036],
+        [R, 0.022],
+        [0, 0.022],
+      ],
+      128,
+    ),
+    lacquer,
+  );
+  shell.rotation.x = Math.PI / 2;
+  head.add(shell);
+  const mirror = new THREE.Mesh(new THREE.CircleGeometry(R, 128), glass);
+  mirror.position.z = 0.024;
+  head.add(mirror);
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(R + 0.012, 0.016, 16, 160), brass);
+  bezel.position.z = 0.03;
+  head.add(bezel);
+  // медальон на спинке
+  const medal = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.012, 12, 64), brass);
+  medal.position.z = -0.094;
+  head.add(medal);
+  const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.012, 40), brass);
+  dot.rotation.x = Math.PI / 2;
+  dot.position.z = -0.094;
+  head.add(dot);
+
+  const handle = new THREE.Group();
+  handle.add(
+    new THREE.Mesh(
+      lathe([
+        [0, -1.5],
+        [0.045, -1.5],
+        [0.066, -1.485],
+        [0.074, -1.44],
+        [0.07, -1.25],
+        [0.06, -1.0],
+        [0.05, -0.82],
+        [0.046, -0.74],
+        [0.05, -0.7],
+        [0, -0.68],
+      ]),
+      lacquer,
+    ),
+  );
+  const ring = (y, r, h) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 48), brass);
+    m.position.y = y;
+    handle.add(m);
+  };
+  ring(-0.68, 0.062, 0.07);
+  ring(-1.44, 0.078, 0.03);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), brass);
+  cap.position.y = -1.5;
+  handle.add(cap);
+
+  const inner = new THREE.Group();
+  inner.add(head, handle);
+  inner.position.y = 1.55;
+  const body = new THREE.Group();
+  body.add(inner);
+  body.scale.setScalar(0.82);
+  return { object: body, tiltX: -0.12 };
+}
+
+/** Флакон шампуня: янтарное стекло, бумажная этикетка, чёрный дозатор и капли воды. */
+function buildBottle() {
+  const amber = new THREE.MeshPhysicalMaterial({ color: srgb(0x5a2a0c), emissive: srgb(0x1c0b03), roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.02 });
+  const ink = new THREE.MeshStandardMaterial({ color: srgb(0x232b28), roughness: 0.48 });
+  const satin = new THREE.MeshStandardMaterial({ color: srgb(0xc3c8c5), metalness: 1, roughness: 0.28 });
+  const label = labelTexture(1024, 600, (ctx, w, h) => {
+    ctx.fillStyle = "#F4EFE5";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(160,140,110,0.08)";
+    const rnd = mulberry32(5);
+    for (let i = 0; i < 1600; i += 1) ctx.fillRect(rnd() * w, rnd() * h, 1.5, 1.5);
+    ctx.fillStyle = "#26332D";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "600 34px Manrope, 'Segoe UI', sans-serif";
+    ctx.letterSpacing = "10px";
+    ctx.fillText("ONIX  BARBERSHOP", w / 2, 120);
+    ctx.letterSpacing = "0px";
+    ctx.fillRect(w / 2 - 60, 168, 120, 2);
+    ctx.font = "italic 500 112px Lora, Georgia, serif";
+    ctx.fillText("Шампунь", w / 2, 280);
+    ctx.font = "500 34px Manrope, 'Segoe UI', sans-serif";
+    ctx.fillStyle = "rgba(38,51,45,0.72)";
+    ctx.fillText("для кожи головы · шалфей и кедр", w / 2, 390);
+    ctx.font = "600 30px Manrope, 'Segoe UI', sans-serif";
+    ctx.letterSpacing = "6px";
+    ctx.fillStyle = "#4F7A68";
+    ctx.fillText("500 МЛ", w / 2, 490);
+  });
+
+  const R = 0.36;
+  const g = new THREE.Group();
+  g.add(
+    new THREE.Mesh(
+      lathe(
+        [
+          [0, 0],
+          [0.3, 0],
+          [0.345, 0.012],
+          [R, 0.05],
+          [R, 0.3],
+          [R, 0.6],
+          [R, 0.86],
+          [0.35, 0.93],
+          [0.31, 0.99],
+          [0.22, 1.04],
+          [0.14, 1.07],
+          [0.112, 1.09],
+          [0.112, 1.15],
+          [0, 1.15],
+        ],
+        128,
+      ),
+      amber,
+    ),
+  );
+  const tag = new THREE.Mesh(
+    new THREE.CylinderGeometry(R + 0.003, R + 0.003, 0.5, 128, 1, true, -1.15, 2.3),
+    new THREE.MeshStandardMaterial({ map: label, roughness: 0.82 }),
+  );
+  tag.position.y = 0.48;
+  g.add(tag);
+  // крышка-дозатор: рифлёный воротник, шток и носик
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.135, 0.13, 64), ink);
+  collar.position.y = 1.2;
+  g.add(collar);
+  [1.15, 1.25].forEach((y) => {
+    const t = new THREE.Mesh(new THREE.TorusGeometry(0.135, 0.008, 8, 64), ink);
+    t.rotation.x = Math.PI / 2;
+    t.position.y = y;
+    g.add(t);
+  });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.14, 24), satin);
+  stem.position.y = 1.33;
+  g.add(stem);
+  const pump = new THREE.Mesh(
+    lathe([
+      [0, 1.38],
+      [0.075, 1.38],
+      [0.09, 1.395],
+      [0.092, 1.43],
+      [0.08, 1.46],
+      [0, 1.47],
+    ]),
+    ink,
+  );
+  g.add(pump);
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.034, 0.26, 24), ink);
+  nozzle.rotation.z = Math.PI / 2 + 0.06;
+  nozzle.position.set(0.17, 1.425, 0);
+  g.add(nozzle);
+  // капли воды на стекле
+  const drop = new THREE.MeshPhysicalMaterial({ color: srgb(0xffffff), roughness: 0.02, clearcoat: 1, transparent: true, opacity: 0.32 });
+  const rnd = mulberry32(42);
+  for (let i = 0; i < 11; i += 1) {
+    const pivot = new THREE.Group();
+    pivot.rotation.y = -1.6 + rnd() * 3.2;
+    const r = 0.01 + rnd() * 0.016;
+    const d = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), drop);
+    d.position.set(0, 0.12 + rnd() * 0.72, R + 0.004);
+    d.scale.set(1, 1.25, 0.45);
+    pivot.add(d);
+    g.add(pivot);
+  }
+  g.scale.setScalar(1.12);
+  return { object: g, tiltX: 0.06 };
+}
+
+/** Машинка для стрижки: графитовый корпус, рифлёная вставка цвета шампань, нож с зубьями и рычаг регулировки. */
+function buildClipper() {
+  const body = new THREE.MeshPhysicalMaterial({ color: srgb(0x2b3430), metalness: 0.25, roughness: 0.4, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+  const brass = new THREE.MeshStandardMaterial({ color: srgb(0xd6ac74), metalness: 1, roughness: 0.24 });
+  const steel = new THREE.MeshStandardMaterial({ color: srgb(0xe1e5e3), metalness: 1, roughness: 0.14 });
+  const knurl = canvasTexture(512, 256, (ctx, w, h) => {
+    ctx.fillStyle = "#cdb48c";
+    ctx.fillRect(0, 0, w, h);
+    const step = 16;
+    ctx.lineWidth = 3;
+    for (let x = -h; x < w + h; x += step) {
+      ctx.strokeStyle = "rgba(90,70,44,0.55)";
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + h, h);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + h, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,244,222,0.45)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, 0);
+      ctx.lineTo(x + 4 + h, h);
+      ctx.stroke();
+      ctx.lineWidth = 3;
+    }
+  });
+  knurl.wrapS = THREE.RepeatWrapping;
+  knurl.wrapT = THREE.RepeatWrapping;
+  knurl.repeat.set(4, 2);
+  const champagne = new THREE.MeshStandardMaterial({ map: knurl, metalness: 0.85, roughness: 0.4 });
+
+  const prof = [
+    [0, 0],
+    [0.2, 0],
+    [0.245, 0.015],
+    [0.262, 0.05],
+    [0.265, 0.15],
+    [0.27, 0.5],
+    [0.285, 0.85],
+    [0.3, 1.05],
+    [0.312, 1.18],
+    [0.33, 1.3],
+    [0.345, 1.38],
+    [0.348, 1.42],
+    [0.335, 1.455],
+    [0.3, 1.468],
+    [0, 1.47],
+  ];
+  const radiusAt = (y) => {
+    for (let i = 1; i < prof.length; i += 1) {
+      const [r1, y1] = prof[i];
+      const [r0, y0] = prof[i - 1];
+      if (y <= y1 && y1 > y0) return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0);
+    }
+    return 0.3;
+  };
+  const oval = new THREE.Group();
+  oval.add(new THREE.Mesh(lathe(prof, 96), body));
+  const grip = [];
+  for (let k = 0; k <= 12; k += 1) {
+    const y = 0.16 + (0.62 * k) / 12;
+    grip.push([radiusAt(y) + 0.006, y]);
+  }
+  oval.add(new THREE.Mesh(lathe(grip, 96), champagne));
+  [0.16, 0.78].forEach((y) => {
+    const t = new THREE.Mesh(new THREE.TorusGeometry(radiusAt(y) + 0.008, 0.012, 10, 96), brass);
+    t.rotation.x = Math.PI / 2;
+    t.position.y = y;
+    oval.add(t);
+  });
+  const foot = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.014, 10, 96), brass);
+  foot.rotation.x = Math.PI / 2;
+  foot.position.y = 0.02;
+  oval.add(foot);
+  oval.scale.z = 0.78;
+
+  // нож: неподвижное полотно с частыми зубьями и подвижное поверх
+  const blade = (w, h, teeth, toothH) => {
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2, 0);
+    s.lineTo(w / 2, 0);
+    s.lineTo(w / 2, h);
+    const p = w / teeth;
+    for (let k = teeth - 1; k >= 0; k -= 1) {
+      const x0 = -w / 2 + k * p;
+      s.lineTo(x0 + p * 0.9, h);
+      s.lineTo(x0 + p * 0.68, h + toothH);
+      s.lineTo(x0 + p * 0.32, h + toothH);
+      s.lineTo(x0 + p * 0.1, h);
+    }
+    s.lineTo(-w / 2, 0);
+    const geo = new THREE.ExtrudeGeometry(s, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.002, bevelSegments: 1 });
+    geo.translate(0, 0, -0.008);
+    return geo;
+  };
+  const fixed = new THREE.Mesh(blade(0.66, 0.12, 32, 0.07), steel);
+  fixed.position.set(0, 1.4, 0.16);
+  fixed.rotation.x = 0.28;
+  const moving = new THREE.Mesh(blade(0.56, 0.1, 28, 0.045), steel);
+  moving.position.set(0, 1.39, 0.13);
+  moving.rotation.x = 0.28;
+  const screws = [-0.2, 0.2].map((x) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.02, 24), brass);
+    m.rotation.x = Math.PI / 2 + 0.28;
+    m.position.set(x, 1.5, 0.2);
+    return m;
+  });
+
+  // кнопка, индикатор и рычаг регулировки ножа
+  const button = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 32), brass);
+  button.rotation.x = Math.PI / 2;
+  button.scale.set(1, 1, 1.9);
+  button.position.set(0, 1.0, radiusAt(1.0) * 0.78 + 0.008);
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 12), new THREE.MeshBasicMaterial({ color: srgb(0x5fd39a) }));
+  led.position.set(0, 0.86, radiusAt(0.86) * 0.78 + 0.004);
+  const lever = new THREE.Group();
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.04), brass);
+  arm.position.y = -0.11;
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.038, 24, 16), brass);
+  knob.position.y = -0.22;
+  lever.add(arm, knob);
+  lever.position.set(0.37, 1.3, 0);
+  lever.rotation.z = 0.25;
+
+  const g = new THREE.Group();
+  g.add(oval, fixed, moving, ...screws, button, led, lever);
+  g.scale.setScalar(1.02);
+  return { object: g, tiltX: 0.08 };
+}
+
+/** Горячее полотенце: махровый рулон со спиралью на торцах, полосы по краям и пар. */
+function buildTowel() {
+  const terry = (stripes) =>
+    canvasTexture(512, 512, (ctx, w, h) => {
+      ctx.fillStyle = "#F3F0E9";
+      ctx.fillRect(0, 0, w, h);
+      const rnd = mulberry32(stripes ? 8 : 9);
+      for (let i = 0; i < 9000; i += 1) {
+        const v = rnd();
+        ctx.fillStyle = v < 0.5 ? `rgba(160,150,132,${0.12 + rnd() * 0.18})` : `rgba(255,255,255,${0.4 + rnd() * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(rnd() * w, rnd() * h, 0.8 + rnd() * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (stripes) {
+        // две тонкие шалфейные полосы у каждого края рулона
+        ctx.fillStyle = "rgba(111,149,131,0.85)";
+        [0.075, 0.115, 0.885, 0.925].forEach((y) => ctx.fillRect(0, y * h - 5, w, 10));
+      }
+    });
+  const sideTex = terry(true);
+  sideTex.wrapS = THREE.RepeatWrapping;
+  const capTex = terry(false);
+  capTex.wrapS = THREE.RepeatWrapping;
+  capTex.wrapT = THREE.RepeatWrapping;
+  capTex.repeat.set(2, 2);
+  const L = 1.4;
+  // UV боковых стенок у ExtrudeGeometry: v = 1 − z, растягиваем текстуру на всю ширину рулона
+  sideTex.repeat.set(2, 1 / (L + 0.1));
+  sideTex.offset.set(0, (L - 1 + 0.05) / (L + 0.1));
+  const side = new THREE.MeshStandardMaterial({ map: sideTex, color: srgb(0xe2ddd3), bumpMap: sideTex, bumpScale: 0.022, roughness: 1 });
+  const cap = new THREE.MeshStandardMaterial({ map: capTex, color: srgb(0xe2ddd3), bumpMap: capTex, bumpScale: 0.022, roughness: 1 });
+
+  // спираль: средняя линия r = r0 + aθ, толщина полотна t, концы скруглены
+  const turns = 3.1;
+  const Rout = 0.46;
+  const r0 = 0.07;
+  const a = (Rout - r0) / (Math.PI * 2 * turns);
+  const t = Math.PI * 2 * a * 0.66;
+  const Th = Math.PI * 2 * turns;
+  const at = (th, off) => {
+    const r = r0 + a * th + off;
+    return [r * Math.cos(th), r * Math.sin(th)];
+  };
+  const steps = Math.round(turns * 96);
+  const s = new THREE.Shape();
+  const start = at(0, t / 2);
+  s.moveTo(start[0], start[1]);
+  for (let k = 1; k <= steps; k += 1) s.lineTo(...at((Th * k) / steps, t / 2));
+  const endCap = (th, from, to) => {
+    const c = at(th, 0);
+    const radial = [Math.cos(th), Math.sin(th)];
+    const tangent = [-Math.sin(th), Math.cos(th)];
+    for (let k = 1; k < 12; k += 1) {
+      const f = from + ((to - from) * k) / 12;
+      s.lineTo(c[0] + (t / 2) * (Math.cos(f) * radial[0] + Math.sin(f) * tangent[0]), c[1] + (t / 2) * (Math.cos(f) * radial[1] + Math.sin(f) * tangent[1]));
+    }
+  };
+  endCap(Th, 0, Math.PI);
+  for (let k = steps; k >= 0; k -= 1) s.lineTo(...at((Th * k) / steps, -t / 2));
+  endCap(0, Math.PI, Math.PI * 2);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: L, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.014, bevelSegments: 4, curveSegments: 4 });
+  geo.translate(0, 0, -L / 2);
+  const roll = new THREE.Mesh(geo, [cap, side]);
+  roll.rotation.y = Math.PI / 2;
+  const g = new THREE.Group();
+  const lift = new THREE.Group();
+  lift.add(roll);
+  lift.position.y = Rout + 0.02;
+  lift.rotation.z = 0.04;
+  g.add(lift);
+  g.scale.setScalar(1.05);
+
+  // пар: мягкие клубы, которые поднимаются и тают
+  // пар: мягкие изогнутые струйки, собранные из размытых точек вдоль синусоиды
+  const wisp = (phase) =>
+    canvasTexture(128, 256, (ctx, w, h) => {
+      for (let k = 0; k <= 60; k += 1) {
+        const f = k / 60;
+        const x = w / 2 + Math.sin(f * Math.PI * 2.2 + phase) * w * 0.16;
+        const y = h * (0.94 - f * 0.88);
+        const r = w * (0.07 + f * 0.1);
+        const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+        gr.addColorStop(0, "rgba(150,170,161,0.11)");
+        gr.addColorStop(1, "rgba(150,170,161,0)");
+        ctx.fillStyle = gr;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+    });
+  const wisps = [wisp(0), wisp(2.1), wisp(4.2)];
+  const steam = new THREE.Group();
+  const puffs = Array.from({ length: 5 }, (_, i) => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: wisps[i % 3], transparent: true, depthWrite: false, opacity: 0 }));
+    steam.add(sp);
+    return { sp, phase: i / 5, x: [-0.3, 0.12, -0.08, 0.32, -0.42][i] };
+  });
+  const update = (time) => {
+    puffs.forEach((p) => {
+      const k = (time * 0.16 + p.phase) % 1;
+      p.sp.position.set(p.x + Math.sin(time * 0.8 + p.phase * 9) * 0.06, 1.12 + k * 0.32, 0.1);
+      p.sp.scale.set(0.36 + k * 0.16, 0.66 + k * 0.26, 1);
+      p.sp.material.opacity = Math.sin(Math.PI * k) ** 1.4 * 0.5;
+    });
+  };
+  return { object: g, tiltX: 0.12, fixed: steam, update };
+}
+
+/** Глина для укладки: керамическая банка, приоткрытая медная крышка с гравировкой и фактура средства. */
+function buildJar() {
+  const ceramic = new THREE.MeshPhysicalMaterial({ color: srgb(0x3e6556), roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.12 });
+  const copper = new THREE.MeshStandardMaterial({ color: srgb(0xc58052), metalness: 1, roughness: 0.3 });
+  const clayMat = new THREE.MeshStandardMaterial({ color: srgb(0xd8cdbf), roughness: 0.92 });
+  const engraving = labelTexture(512, 512, (ctx, w, h) => {
+    ctx.fillStyle = "#c58052";
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "rgba(70,36,16,0.55)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, w * 0.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(70,36,16,0.7)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "italic 500 132px Lora, Georgia, serif";
+    ctx.fillText("Onix", w / 2, h / 2 - 18);
+    ctx.font = "600 30px Manrope, 'Segoe UI', sans-serif";
+    ctx.letterSpacing = "8px";
+    ctx.fillText("MATTE CLAY", w / 2, h / 2 + 82);
+  });
+
+  const jar = new THREE.Group();
+  jar.add(
+    new THREE.Mesh(
+      lathe(
+        [
+          [0, 0],
+          [0.44, 0],
+          [0.49, 0.02],
+          [0.5, 0.06],
+          [0.5, 0.25],
+          [0.5, 0.42],
+          [0.488, 0.46],
+          [0.462, 0.472],
+          [0.462, 0.53],
+          [0.452, 0.546],
+          [0.432, 0.546],
+          [0.432, 0.5],
+          [0.432, 0.47],
+        ],
+        128,
+      ),
+      ceramic,
+    ),
+  );
+  // поверхность глины с завитком от пальца
+  const clayGeo = new THREE.RingGeometry(0.001, 0.432, 96, 24);
+  const pos = clayGeo.attributes.position;
+  for (let i = 0; i < pos.count; i += 1) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const r = Math.hypot(x, y);
+    const th = Math.atan2(y, x);
+    const edge = 1 - (r / 0.432) ** 6;
+    const swirl = 0.5 + 0.5 * Math.cos(2 * th - r * 16);
+    const scoop = Math.exp(-((x - 0.1) ** 2 + (y + 0.06) ** 2) / 0.02);
+    pos.setZ(i, edge * (0.03 * swirl - 0.05 * scoop));
+  }
+  clayGeo.computeVertexNormals();
+  const clay = new THREE.Mesh(clayGeo, clayMat);
+  clay.rotation.x = -Math.PI / 2;
+  clay.position.y = 0.49;
+  jar.add(clay);
+
+  const lid = new THREE.Group();
+  lid.add(
+    new THREE.Mesh(
+      lathe(
+        [
+          [0, 0.02],
+          [0.44, 0.02],
+          [0.462, 0.0],
+          [0.512, 0.0],
+          [0.522, 0.02],
+          [0.524, 0.07],
+          [0.524, 0.13],
+          [0.51, 0.155],
+          [0.485, 0.162],
+          [0, 0.162],
+        ],
+        128,
+      ),
+      copper,
+    ),
+  );
+  const plate = new THREE.Mesh(new THREE.CircleGeometry(0.44, 96), new THREE.MeshStandardMaterial({ map: engraving, metalness: 0.5, roughness: 0.42 }));
+  plate.rotation.x = -Math.PI / 2;
+  plate.position.y = 0.164;
+  lid.add(plate);
+  // светлый вкладыш с изнанки крышки
+  const liner = new THREE.Mesh(new THREE.CircleGeometry(0.44, 96), new THREE.MeshStandardMaterial({ color: srgb(0xebe4d8), roughness: 0.7 }));
+  liner.rotation.x = Math.PI / 2;
+  liner.position.y = 0.017;
+  lid.add(liner);
+  // крышка не вращается вместе с банкой: она всегда повёрнута гравировкой к зрителю и медленно крутится вокруг своей оси
+  const tiltLid = new THREE.Group();
+  tiltLid.add(lid);
+  tiltLid.rotation.set(0.62, 0, -0.14);
+  tiltLid.position.set(0.06, 0.94, 0);
+  const lidFixed = new THREE.Group();
+  lidFixed.add(tiltLid);
+  lidFixed.scale.setScalar(1.18);
+
+  const g = new THREE.Group();
+  g.add(jar);
+  g.scale.setScalar(1.18);
+  const update = (time) => {
+    tiltLid.position.y = 0.94 + Math.sin(time * 1.3) * 0.035;
+    lid.rotation.y = time * 0.35;
+  };
+  return { object: g, tiltX: 0.18, fixed: lidFixed, update };
+}
+
+const RITUAL_PROPS = [buildMirror, buildBottle, buildClipper, buildTowel, buildJar];
+
 /* ───────────────────────────── Ритуал (GSAP pin) ────────────────── */
+
+const RITUAL_TOTAL = RITUAL.reduce((sum, r) => sum + r.min, 0);
+const RITUAL_START = RITUAL.map((_, i) => RITUAL.slice(0, i).reduce((sum, r) => sum + r.min, 0));
+const hmm = (m) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+
+/**
+ * Один WebGL-рендерер на все карточки ритуала: сцена рисуется по очереди для каждой видимой карточки
+ * и копируется в её собственный 2D-холст. Так карточки свободно крутятся GSAP-ом в 3D, а контекст WebGL один.
+ */
+function useRitualStage(canvases, reduced) {
+  const [webgl, setWebgl] = useState(true);
+  const tilt = useRef(RITUAL.map(() => ({ x: 0, y: 0, tx: 0, ty: 0 })));
+
+  useEffect(() => {
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    } catch {
+      setWebgl(false);
+      return undefined;
+    }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    renderer.setPixelRatio(dpr);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+
+    const scene = new THREE.Scene();
+    scene.environment = studioEnvironment(renderer);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d2c6, 0.4));
+    const key = new THREE.DirectionalLight(0xfff6ea, 1.05);
+    key.position.set(3, 5, 4);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0xdfeee6, 0.6);
+    rim.position.set(-4, 2, -3);
+    scene.add(rim);
+
+    const pedestal = buildPedestal();
+    const TOP = -1.02;
+    pedestal.object.position.y = TOP;
+    scene.add(pedestal.object);
+    const contact = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.5, 1.5),
+      new THREE.MeshBasicMaterial({ map: softSpot(0.5), transparent: true, depthWrite: false }),
+    );
+    contact.rotation.x = -Math.PI / 2;
+    contact.position.y = TOP + 0.003;
+    scene.add(contact);
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2, 1.5),
+      new THREE.MeshBasicMaterial({ map: softSpot(0.34), transparent: true, depthWrite: false }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = TOP - pedestal.height - 0.004;
+    scene.add(ground);
+
+    const BASE = TOP + 0.2;
+    const props = RITUAL_PROPS.map((build) => {
+      const p = build();
+      const spin = new THREE.Group();
+      spin.rotation.order = "YXZ";
+      spin.add(p.object);
+      spin.position.y = BASE;
+      scene.add(spin);
+      if (p.fixed) {
+        p.fixed.position.y = BASE;
+        scene.add(p.fixed);
+      }
+      return { ...p, spin };
+    });
+    const only = (i) =>
+      props.forEach((p, j) => {
+        p.spin.visible = j === i;
+        if (p.fixed) p.fixed.visible = j === i;
+      });
+
+    const camera = new THREE.PerspectiveCamera(24, 1.4, 0.1, 60);
+    const fit = (aspect) => {
+      const half = Math.tan(deg(camera.fov / 2));
+      const dist = Math.max(1.34 / half, 1.15 / (half * aspect)) + 0.3;
+      camera.aspect = aspect;
+      camera.position.set(0, -0.2 + dist * Math.sin(deg(9)), dist * Math.cos(deg(9)));
+      camera.lookAt(0, -0.24, 0);
+      camera.updateProjectionMatrix();
+    };
+    fit(1.4);
+    // шейдеры всех предметов компилируем сразу, чтобы первая карточка не дёрнулась
+    props.forEach((p) => {
+      p.spin.visible = true;
+      if (p.fixed) p.fixed.visible = true;
+    });
+    renderer.compile(scene, camera);
+
+    const visible = new Set();
+    const io = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          const i = Number(e.target.dataset.prop);
+          if (e.isIntersecting) visible.add(i);
+          else visible.delete(i);
+        }),
+      { rootMargin: "120px" },
+    );
+    const contexts = [];
+    canvases.current.forEach((c, i) => {
+      if (!c) return;
+      contexts[i] = c.getContext("2d");
+      io.observe(c);
+    });
+
+    let size = { w: 0, h: 0 };
+    let raf = 0;
+    let t = 0;
+    const clock = new THREE.Clock();
+    const frame = () => {
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      if (!visible.size) return;
+      if (!reduced) t += dt;
+      const wide = window.innerWidth >= 1024;
+      visible.forEach((i) => {
+        const c = canvases.current[i];
+        const ctx = contexts[i];
+        if (!c || !ctx) return;
+        const w = c.clientWidth;
+        const h = c.clientHeight;
+        if (!w || !h) return;
+        const pw = Math.round(w * dpr);
+        const ph = Math.round(h * dpr);
+        if (c.width !== pw || c.height !== ph) {
+          c.width = pw;
+          c.height = ph;
+        }
+        if (size.w !== w || size.h !== h) {
+          renderer.setSize(w, h, false);
+          size = { w, h };
+        }
+        fit(w / h);
+        // предмет доворачивается, пока карточка проезжает по экрану
+        const r = c.getBoundingClientRect();
+        const off = reduced ? 0 : wide ? (r.left + r.width / 2) / window.innerWidth - 0.5 : (r.top + r.height / 2) / window.innerHeight - 0.5;
+        const tl = tilt.current[i];
+        tl.x += (tl.tx - tl.x) * 0.06;
+        tl.y += (tl.ty - tl.y) * 0.06;
+        const p = props[i];
+        only(i);
+        p.spin.rotation.y = (reduced ? 0.55 : 0.25) + t * 0.42 + off * 1.6 + tl.y;
+        p.spin.rotation.x = p.tiltX + tl.x;
+        const bob = reduced ? 0 : Math.sin(t * 1.15 + i) * 0.045;
+        p.spin.position.y = BASE + bob;
+        p.update?.(t);
+        contact.scale.setScalar(1 - bob * 1.4);
+        contact.material.opacity = 0.9 - bob * 4;
+        renderer.render(scene, camera);
+        ctx.clearRect(0, 0, pw, ph);
+        ctx.drawImage(renderer.domElement, 0, 0, pw, ph);
+      });
+    };
+    raf = requestAnimationFrame(frame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      scene.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+        mats.forEach((m) => {
+          ["map", "emissiveMap", "bumpMap"].forEach((k) => m[k]?.dispose());
+          m.dispose();
+        });
+      });
+      scene.environment?.dispose();
+      renderer.dispose();
+    };
+  }, [canvases, reduced]);
+
+  const pointer = useCallback((i, px, py) => {
+    const tl = tilt.current[i];
+    tl.tx = py * 0.3;
+    tl.ty = px * 0.7;
+  }, []);
+
+  return { webgl, pointer };
+}
+
+function RitualTimeline({ index }) {
+  const step = RITUAL[index];
+  const start = RITUAL_START[index];
+  return (
+    <div className="mt-6">
+      <div className="flex h-[3px] gap-[3px]" aria-hidden="true">
+        {RITUAL.map((r, j) => (
+          <span
+            key={r.n}
+            className={`h-full rounded-full ${j === index ? "bg-[#4F7A68]" : j < index ? "bg-[#4F7A68]/30" : "bg-[#26332D]/10"}`}
+            style={{ flexGrow: r.min, flexBasis: 0 }}
+          />
+        ))}
+      </div>
+      <div className="f-label mt-3 flex items-center justify-between text-[10.5px] uppercase tracking-[0.14em] text-[#26332D]/50">
+        <span className="tabular-nums">
+          {hmm(start)} — {hmm(start + step.min)}
+        </span>
+        <span>из {RITUAL_TOTAL} минут</span>
+      </div>
+    </div>
+  );
+}
 
 function Ritual() {
   const section = useRef(null);
   const track = useRef(null);
+  const canvases = useRef([]);
   const reduced = useReducedMotion();
+  const { webgl, pointer } = useRitualStage(canvases, reduced);
 
   useIsoLayoutEffect(() => {
     if (reduced) return undefined;
@@ -2393,7 +3273,8 @@ function Ritual() {
           anticipatePin: 1,
         },
       });
-      gsap.utils.toArray(".rt-card", track.current).forEach((card) => {
+      const cards = gsap.utils.toArray(".rt-card", track.current);
+      cards.forEach((card, i) => {
         gsap.fromTo(
           card,
           { rotateY: -38, z: -160, opacity: 0.35, transformPerspective: 1200, transformOrigin: "0% 50%" },
@@ -2402,7 +3283,14 @@ function Ritual() {
             z: 0,
             opacity: 1,
             ease: "none",
-            scrollTrigger: { trigger: card, containerAnimation: tween, start: "left right", end: "center 60%", scrub: true },
+            // последняя карточка до центра не доезжает — она доворачивается, пока её правый край входит в экран
+            scrollTrigger: {
+              trigger: card,
+              containerAnimation: tween,
+              start: "left right",
+              end: i === cards.length - 1 ? "right 94%" : "center 60%",
+              scrub: true,
+            },
           },
         );
         gsap.fromTo(
@@ -2433,8 +3321,6 @@ function Ritual() {
     return () => mm.revert();
   }, [reduced]);
 
-  const total = RITUAL.reduce((sum, r) => sum + r.min, 0);
-
   return (
     <div>
       <section id="ritual" ref={section} className="relative scroll-mt-20 overflow-hidden py-24 lg:flex lg:h-screen lg:items-center lg:py-0">
@@ -2445,7 +3331,7 @@ function Ritual() {
           <div className="flex flex-col justify-center pb-8 lg:w-[36vw] lg:max-w-[560px] lg:pb-0 lg:pr-10">
             <p className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">
               <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4F7A68] align-middle" aria-hidden="true" />
-              Стрижка «Onix» · {total} минут
+              Стрижка «Onix» · {RITUAL_TOTAL} минут
             </p>
             <h2 aria-label="Ритуал визита" className="f-display mt-5 text-[clamp(2.8rem,9vw,6.2rem)] font-medium leading-[0.98] tracking-[-0.01em]">
               <SplitLetters text="Ритуал" trigger="view" />{" "}
@@ -2461,29 +3347,61 @@ function Ritual() {
               <ArrowDown size={12} className="-rotate-90" />
             </p>
           </div>
-          {RITUAL.map((step) => {
+          {RITUAL.map((step, i) => {
             const Icon = step.icon;
             return (
               <article
                 key={step.n}
-                className="rt-card relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-[28px] border border-white/80 bg-[#FAFBF8]/85 p-7 shadow-[0_30px_60px_-40px_rgba(38,51,45,0.35)] backdrop-blur-xl sm:p-9 lg:h-[64vh] lg:max-h-[600px] lg:w-[min(30vw,460px)]"
+                className="rt-card relative flex flex-col overflow-hidden rounded-[28px] border border-white/80 bg-[#FAFBF8]/85 p-6 shadow-[0_30px_60px_-40px_rgba(38,51,45,0.35)] backdrop-blur-xl sm:p-8 lg:h-[74vh] lg:max-h-[680px] lg:w-[min(30vw,460px)]"
               >
-                <span
-                  className="rt-num f-display pointer-events-none absolute -right-2 -top-8 text-[10rem] italic leading-none text-[#DCE6DF] sm:text-[13rem]"
-                  aria-hidden="true"
-                >
-                  {step.n}
-                </span>
-                <div className="relative flex items-center justify-between">
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-[#DCE6DF] text-[#4F7A68]">
-                    <Icon size={20} strokeWidth={1.3} />
+                <div className="relative z-10 flex items-center justify-between">
+                  <span className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">
+                    Этап {step.n}
+                    <span className="text-[#26332D]/30"> / 0{RITUAL.length}</span>
                   </span>
-                  <span className="f-label text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55">Этап {step.n}</span>
+                  <span className="f-label inline-flex items-center gap-1.5 rounded-full border border-[#26332D]/10 bg-white/70 px-3 py-1.5 text-[11px] uppercase tracking-[0.12em] text-[#4F7A68]">
+                    <Clock size={12} strokeWidth={1.8} aria-hidden="true" />
+                    {step.min} мин
+                  </span>
                 </div>
-                <div className="relative mt-16">
-                  <span className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">{step.min} мин</span>
-                  <h3 className="f-display mt-2 text-[2.1rem] font-medium leading-tight sm:text-[2.4rem]">{step.title}</h3>
-                  <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-[#26332D]/70">{step.text}</p>
+                <div
+                  className="relative -mx-6 h-[260px] shrink-0 sm:-mx-8 sm:h-[300px] lg:h-auto lg:min-h-[220px] lg:flex-1"
+                  onPointerMove={(e) => {
+                    if (e.pointerType !== "mouse") return;
+                    const r = e.currentTarget.getBoundingClientRect();
+                    pointer(i, (e.clientX - r.left) / r.width - 0.5, (e.clientY - r.top) / r.height - 0.5);
+                  }}
+                  onPointerLeave={() => pointer(i, 0, 0)}
+                >
+                  <div
+                    aria-hidden="true"
+                    className="absolute left-1/2 top-[46%] aspect-square h-[92%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(220,230,223,0.95)_0%,rgba(220,230,223,0.45)_42%,rgba(220,230,223,0)_70%)]"
+                  />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="rt-num f-display -mt-6 text-[9rem] italic leading-none text-[#26332D]/[0.045] sm:text-[12rem]">{step.n}</span>
+                  </div>
+                  {webgl ? (
+                    <canvas
+                      ref={(el) => {
+                        canvases.current[i] = el;
+                      }}
+                      data-prop={i}
+                      role="img"
+                      aria-label={`3D: ${step.prop}`}
+                      className="absolute inset-0 block h-full w-full"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 grid place-items-center">
+                      <span className="grid h-24 w-24 place-items-center rounded-full bg-[#DCE6DF] text-[#4F7A68]">
+                        <Icon size={34} strokeWidth={1.2} />
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <h3 className="f-display text-[2rem] font-medium leading-tight sm:text-[2.3rem]">{step.title}</h3>
+                  <p className="mt-3 max-w-sm text-[14.5px] leading-relaxed text-[#26332D]/70">{step.text}</p>
+                  <RitualTimeline index={i} />
                 </div>
               </article>
             );
