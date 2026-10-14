@@ -2681,137 +2681,321 @@ function buildBottle() {
   return { object: g, tiltX: 0.06 };
 }
 
-/** Машинка для стрижки: графитовый корпус, рифлёная вставка цвета шампань, нож с зубьями и рычаг регулировки. */
+/**
+ * Тело, сечение которого — скруглённый прямоугольник (суперэллипс) с полуосями a и b, меняющимися по высоте.
+ * UV: u — по длине обвода (0 справа, 0.25 спереди), v — из колец.
+ */
+function loftGeometry(rings, { segments = 96, n = 2.6, capBottom = true, capTop = true } = {}) {
+  const S = segments;
+  const row = S + 1;
+  const pos = [];
+  const uv = [];
+  const idx = [];
+  rings.forEach(({ y, a, b, v }) => {
+    const pts = [];
+    for (let k = 0; k <= S; k += 1) {
+      const t = (k / S) * Math.PI * 2;
+      const c = Math.cos(t);
+      const s = Math.sin(t);
+      pts.push([a * Math.sign(c) * Math.abs(c) ** (2 / n), b * Math.sign(s) * Math.abs(s) ** (2 / n)]);
+    }
+    const len = [0];
+    for (let k = 1; k <= S; k += 1) len.push(len[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
+    pts.forEach(([x, z], k) => {
+      pos.push(x, y, z);
+      uv.push(len[k] / len[S], v);
+    });
+  });
+  for (let i = 0; i < rings.length - 1; i += 1) {
+    for (let k = 0; k < S; k += 1) {
+      const p = i * row + k;
+      const q = p + row;
+      idx.push(p, q, p + 1, q, q + 1, p + 1);
+    }
+  }
+  const cap = (ring, up) => {
+    const c = pos.length / 3;
+    pos.push(0, rings[ring].y, 0);
+    uv.push(0.5, up ? 1 : 0);
+    for (let k = 0; k < S; k += 1) {
+      const p = ring * row + k;
+      if (up) idx.push(c, p + 1, p);
+      else idx.push(c, p, p + 1);
+    }
+  };
+  if (capBottom) cap(0, false);
+  if (capTop) cap(rings.length - 1, true);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  // шов развёртки: у первой и последней точки кольца одна нормаль, иначе виден рубец
+  const nrm = geo.attributes.normal;
+  for (let i = 0; i < rings.length; i += 1) {
+    const p = i * row;
+    const q = p + S;
+    const nx = nrm.getX(p) + nrm.getX(q);
+    const ny = nrm.getY(p) + nrm.getY(q);
+    const nz = nrm.getZ(p) + nrm.getZ(q);
+    const l = Math.hypot(nx, ny, nz) || 1;
+    nrm.setXYZ(p, nx / l, ny / l, nz / l);
+    nrm.setXYZ(q, nx / l, ny / l, nz / l);
+  }
+  return geo;
+}
+
+/**
+ * Профессиональная беспроводная машинка: эргономичный корпус со скруглённым прямоугольным сечением,
+ * рифлёная вставка, широкий стальной нож на винтах и золотистый подвижный нож, чёрный блок ножей,
+ * рычаг регулировки сбоку, ползунок питания и индикатор заряда.
+ */
 function buildClipper() {
-  const body = new THREE.MeshPhysicalMaterial({ color: srgb(0x2b3430), metalness: 0.25, roughness: 0.4, clearcoat: 0.6, clearcoatRoughness: 0.2 });
-  const brass = new THREE.MeshStandardMaterial({ color: srgb(0xd6ac74), metalness: 1, roughness: 0.24 });
-  const steel = new THREE.MeshStandardMaterial({ color: srgb(0xe1e5e3), metalness: 1, roughness: 0.14 });
-  const knurl = canvasTexture(512, 256, (ctx, w, h) => {
-    ctx.fillStyle = "#cdb48c";
+  const H = 1.42;
+  const ss = (x) => {
+    const t = clamp(x, 0, 1);
+    return t * t * (3 - 2 * t);
+  };
+  // корпус расширяется к ножевому блоку, на уровне ладони — лёгкая талия
+  const dims = (y) => {
+    const grow = ss((y - 0.45) / 0.95);
+    const waist = Math.exp(-(((y - 0.5) / 0.2) ** 2));
+    return [0.21 + 0.064 * grow - 0.008 * waist, 0.162 + 0.022 * grow - 0.005 * waist];
+  };
+  const rb = 0.05;
+  const rt = 0.09;
+  const ys = [];
+  for (let k = 0; k <= 8; k += 1) ys.push(rb * (1 - Math.cos(((k / 8) * Math.PI) / 2)));
+  for (let y = rb + 0.04; y < H - rt; y += 0.04) ys.push(y);
+  for (let k = 0; k <= 10; k += 1) ys.push(H - rt + rt * Math.sin(((k / 10) * Math.PI) / 2));
+  const bodyRings = ys.map((y) => {
+    const [a, b] = dims(y);
+    let inset = 0;
+    if (y < rb) inset = rb - Math.sqrt(Math.max(0, rb * rb - (rb - y) ** 2));
+    if (y > H - rt) inset = rt - Math.sqrt(Math.max(0, rt * rt - (y - (H - rt)) ** 2));
+    return { y, a: a - inset, b: b - inset, v: y / H };
+  });
+  const band = (y0, y1, steps, off) =>
+    Array.from({ length: steps + 1 }, (_, k) => {
+      const y = y0 + ((y1 - y0) * k) / steps;
+      const [a, b] = dims(y);
+      return { y, a: a + off, b: b + off, v: k / steps };
+    });
+  const trim = (y0) =>
+    [
+      [-0.014, 0.002],
+      [-0.011, 0.011],
+      [0.011, 0.011],
+      [0.014, 0.002],
+    ].map(([dy, off], k) => {
+      const [a, b] = dims(y0 + dy);
+      return { y: y0 + dy, a: a + off, b: b + off, v: k / 3 };
+    });
+
+  // графитовый корпус: шлифовка, разъём половинок по бокам и логотип на лицевой стороне
+  const bodyTex = labelTexture(2048, 1024, (ctx, w, h) => {
+    ctx.fillStyle = "#2A3330";
     ctx.fillRect(0, 0, w, h);
-    const step = 16;
-    ctx.lineWidth = 3;
-    for (let x = -h; x < w + h; x += step) {
-      ctx.strokeStyle = "rgba(90,70,44,0.55)";
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x + h, h);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x + h, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(255,244,222,0.45)";
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(x + 4, 0);
-      ctx.lineTo(x + 4 + h, h);
-      ctx.stroke();
-      ctx.lineWidth = 3;
+    const rnd = mulberry32(17);
+    for (let i = 0; i < 2600; i += 1) {
+      ctx.fillStyle = `rgba(255,255,255,${0.01 + rnd() * 0.02})`;
+      ctx.fillRect(rnd() * w, rnd() * h, 1, 6 + rnd() * 30);
+    }
+    ctx.fillStyle = "rgba(8,12,10,0.9)";
+    [0, w / 2, w].forEach((x) => ctx.fillRect(x - 2, 0, 4, h));
+    // u растёт справа налево, поэтому надпись зеркалим; по горизонтали развёртка плотнее — растягиваем
+    ctx.save();
+    ctx.translate(w * 0.25, h * (1 - 1.2 / H));
+    ctx.scale(-2.2, 1);
+    ctx.fillStyle = "#CDB48C";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "600 30px Manrope, 'Segoe UI', sans-serif";
+    ctx.letterSpacing = "7px";
+    ctx.fillText("ONIX", 0, 0);
+    ctx.font = "600 12px Manrope, 'Segoe UI', sans-serif";
+    ctx.letterSpacing = "4px";
+    ctx.fillStyle = "rgba(205,180,140,0.7)";
+    ctx.fillText("PRO · CORDLESS", 0, 30);
+    ctx.restore();
+  });
+  // рифление: объёмные ромбики, освещённые сверху слева
+  const knurl = canvasTexture(256, 256, (ctx, w, h) => {
+    const s = 32;
+    ctx.fillStyle = "#8a7150";
+    ctx.fillRect(0, 0, w, h);
+    for (let r = -2; r <= h / (s / 2) + 2; r += 1) {
+      const y = (r * s) / 2;
+      for (let x = -s; x <= w + s; x += s) {
+        const cx = x + (Math.abs(r) % 2 ? s / 2 : 0);
+        const g = ctx.createLinearGradient(cx - s / 2, y - s / 2, cx + s / 2, y + s / 2);
+        g.addColorStop(0, "#f3e3c3");
+        g.addColorStop(0.5, "#cdb48c");
+        g.addColorStop(1, "#6f5838");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(cx, y - s / 2 + 2);
+        ctx.lineTo(cx + s / 2 - 2, y);
+        ctx.lineTo(cx, y + s / 2 - 2);
+        ctx.lineTo(cx - s / 2 + 2, y);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
   });
   knurl.wrapS = THREE.RepeatWrapping;
   knurl.wrapT = THREE.RepeatWrapping;
-  knurl.repeat.set(4, 2);
-  const champagne = new THREE.MeshStandardMaterial({ map: knurl, metalness: 0.85, roughness: 0.4 });
+  knurl.repeat.set(5, 2);
 
-  const prof = [
-    [0, 0],
-    [0.2, 0],
-    [0.245, 0.015],
-    [0.262, 0.05],
-    [0.265, 0.15],
-    [0.27, 0.5],
-    [0.285, 0.85],
-    [0.3, 1.05],
-    [0.312, 1.18],
-    [0.33, 1.3],
-    [0.345, 1.38],
-    [0.348, 1.42],
-    [0.335, 1.455],
-    [0.3, 1.468],
-    [0, 1.47],
-  ];
-  const radiusAt = (y) => {
-    for (let i = 1; i < prof.length; i += 1) {
-      const [r1, y1] = prof[i];
-      const [r0, y0] = prof[i - 1];
-      if (y <= y1 && y1 > y0) return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0);
-    }
-    return 0.3;
-  };
-  const oval = new THREE.Group();
-  oval.add(new THREE.Mesh(lathe(prof, 96), body));
-  const grip = [];
-  for (let k = 0; k <= 12; k += 1) {
-    const y = 0.16 + (0.62 * k) / 12;
-    grip.push([radiusAt(y) + 0.006, y]);
-  }
-  oval.add(new THREE.Mesh(lathe(grip, 96), champagne));
-  [0.16, 0.78].forEach((y) => {
-    const t = new THREE.Mesh(new THREE.TorusGeometry(radiusAt(y) + 0.008, 0.012, 10, 96), brass);
-    t.rotation.x = Math.PI / 2;
-    t.position.y = y;
-    oval.add(t);
-  });
-  const foot = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.014, 10, 96), brass);
-  foot.rotation.x = Math.PI / 2;
-  foot.position.y = 0.02;
-  oval.add(foot);
-  oval.scale.z = 0.78;
+  const shell = new THREE.MeshPhysicalMaterial({ map: bodyTex, metalness: 0.3, roughness: 0.42, clearcoat: 0.55, clearcoatRoughness: 0.28 });
+  const grip = new THREE.MeshStandardMaterial({ map: knurl, bumpMap: knurl, bumpScale: 0.004, metalness: 0.9, roughness: 0.36 });
+  const champagne = new THREE.MeshStandardMaterial({ color: srgb(0xd8bf94), metalness: 1, roughness: 0.2 });
+  const plastic = new THREE.MeshStandardMaterial({ color: srgb(0x1a1f1d), roughness: 0.55 });
+  const steel = new THREE.MeshStandardMaterial({ color: srgb(0xc9cfcc), metalness: 1, roughness: 0.2 });
+  const mirror = new THREE.MeshStandardMaterial({ color: srgb(0xf6f8f7), metalness: 1, roughness: 0.04 });
+  const satin = new THREE.MeshStandardMaterial({ color: srgb(0x9aa29e), metalness: 1, roughness: 0.38 });
+  const gold = new THREE.MeshStandardMaterial({ color: srgb(0xd9b26f), metalness: 1, roughness: 0.22 });
+  const dark = new THREE.MeshStandardMaterial({ color: srgb(0x111513), roughness: 0.5 });
 
-  // нож: неподвижное полотно с частыми зубьями и подвижное поверх
-  const blade = (w, h, teeth, toothH) => {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(loftGeometry(bodyRings), shell));
+  g.add(new THREE.Mesh(loftGeometry(band(0.14, 0.66, 26, 0.004), { capBottom: false, capTop: false }), grip));
+  [0.07, 0.14, 0.66].forEach((y) => g.add(new THREE.Mesh(loftGeometry(trim(y), { capBottom: false, capTop: false }), champagne)));
+
+  // ползунок питания и индикатор заряда на лицевой стороне
+  const front = (y) => dims(y)[1];
+  const pill = (w, h, depth) => {
     const s = new THREE.Shape();
-    s.moveTo(-w / 2, 0);
-    s.lineTo(w / 2, 0);
-    s.lineTo(w / 2, h);
-    const p = w / teeth;
+    const r = w / 2;
+    s.moveTo(-r, -h / 2 + r);
+    s.absarc(0, -h / 2 + r, r, Math.PI, Math.PI * 2, false);
+    s.lineTo(r, h / 2 - r);
+    s.absarc(0, h / 2 - r, r, 0, Math.PI, false);
+    s.lineTo(-r, -h / 2 + r);
+    return new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.003, bevelSegments: 2, curveSegments: 16 });
+  };
+  const slot = new THREE.Mesh(pill(0.074, 0.17, 0.008), dark);
+  slot.position.set(0, 0.97, front(0.97) - 0.004);
+  const slider = new THREE.Mesh(pill(0.05, 0.078, 0.014), champagne);
+  slider.position.set(0, 1.01, front(1.01) - 0.002);
+  g.add(slot, slider);
+  [-0.036, -0.012, 0.012, 0.036].forEach((x, i) => {
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.008, 12, 8), new THREE.MeshBasicMaterial({ color: srgb(i < 3 ? 0x8be3b9 : 0x3a4440) }));
+    led.position.set(x, 0.79, front(0.79) + 0.001);
+    led.scale.z = 0.5;
+    g.add(led);
+  });
+
+  // чёрный блок ножей: профиль сбоку, вытянутый по ширине
+  const bp = new THREE.Shape();
+  bp.moveTo(-0.15, 1.3);
+  bp.lineTo(0.15, 1.3);
+  bp.lineTo(0.17, 1.33);
+  bp.lineTo(0.12, 1.53);
+  bp.quadraticCurveTo(0.05, 1.56, -0.03, 1.5);
+  bp.quadraticCurveTo(-0.11, 1.44, -0.13, 1.36);
+  bp.lineTo(-0.15, 1.3);
+  const bracketGeo = new THREE.ExtrudeGeometry(bp, {
+    depth: 0.4,
+    bevelEnabled: true,
+    bevelThickness: 0.03,
+    bevelSize: 0.025,
+    bevelSegments: 4,
+    curveSegments: 16,
+  });
+  bracketGeo.translate(0, 0, -0.2);
+  bracketGeo.rotateY(-Math.PI / 2);
+  g.add(new THREE.Mesh(bracketGeo, plastic));
+
+  // ножи: неподвижный стальной с частыми зубьями и подвижный золотистый за ним
+  const blade = ({ base, top, h, teeth, toothH, flare }) => {
+    const s = new THREE.Shape();
+    const r = 0.035;
+    s.moveTo(-base / 2 + r, 0);
+    s.lineTo(base / 2 - r, 0);
+    s.quadraticCurveTo(base / 2, 0, base / 2 + 0.005, r);
+    s.quadraticCurveTo(top / 2, flare, top / 2, h - 0.03);
+    s.lineTo(top / 2, h);
+    const p = top / teeth;
     for (let k = teeth - 1; k >= 0; k -= 1) {
-      const x0 = -w / 2 + k * p;
-      s.lineTo(x0 + p * 0.9, h);
-      s.lineTo(x0 + p * 0.68, h + toothH);
-      s.lineTo(x0 + p * 0.32, h + toothH);
-      s.lineTo(x0 + p * 0.1, h);
+      const x0 = -top / 2 + k * p;
+      s.lineTo(x0 + p * 0.88, h);
+      s.lineTo(x0 + p * 0.7, h + toothH * 0.92);
+      s.quadraticCurveTo(x0 + p * 0.5, h + toothH * 1.04, x0 + p * 0.3, h + toothH * 0.92);
+      s.lineTo(x0 + p * 0.12, h);
     }
-    s.lineTo(-w / 2, 0);
-    const geo = new THREE.ExtrudeGeometry(s, { depth: 0.016, bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.002, bevelSegments: 1 });
+    s.lineTo(-top / 2, h - 0.03);
+    s.quadraticCurveTo(-top / 2, flare, -base / 2 - 0.005, r);
+    s.quadraticCurveTo(-base / 2, 0, -base / 2 + r, 0);
+    const geo = new THREE.ExtrudeGeometry(s, {
+      depth: 0.016,
+      bevelEnabled: true,
+      bevelThickness: 0.002,
+      bevelSize: 0.0015,
+      bevelSegments: 1,
+      curveSegments: 12,
+    });
     geo.translate(0, 0, -0.008);
     return geo;
   };
-  const fixed = new THREE.Mesh(blade(0.66, 0.12, 32, 0.07), steel);
-  fixed.position.set(0, 1.4, 0.16);
-  fixed.rotation.x = 0.28;
-  const moving = new THREE.Mesh(blade(0.56, 0.1, 28, 0.045), steel);
-  moving.position.set(0, 1.39, 0.13);
-  moving.rotation.x = 0.28;
-  const screws = [-0.2, 0.2].map((x) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.02, 24), brass);
-    m.rotation.x = Math.PI / 2 + 0.28;
-    m.position.set(x, 1.5, 0.2);
-    return m;
+  const bladeSet = new THREE.Group();
+  const fixed = new THREE.Mesh(blade({ base: 0.42, top: 0.56, h: 0.2, teeth: 30, toothH: 0.066, flare: 0.1 }), steel);
+  const moving = new THREE.Mesh(blade({ base: 0.36, top: 0.47, h: 0.19, teeth: 26, toothH: 0.052, flare: 0.1 }), gold);
+  moving.position.set(0, 0.002, -0.016);
+  // полированная фаска заточки вдоль основания зубьев
+  const grind = new THREE.Mesh(new THREE.PlaneGeometry(0.556, 0.022), mirror);
+  grind.position.set(0, 0.188, 0.0106);
+  bladeSet.add(fixed, moving, grind);
+  [
+    [-0.13, 0.4],
+    [0.13, 1.2],
+  ].forEach(([x, turn]) => {
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.026, 0.01, 32), satin);
+    head.rotation.x = Math.PI / 2;
+    head.position.set(x, 0.075, 0.014);
+    const cut = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.008, 0.006), dark);
+    cut.position.set(x, 0.075, 0.018);
+    cut.rotation.z = turn;
+    bladeSet.add(head, cut);
   });
+  bladeSet.position.set(0, 1.315, 0.21);
+  bladeSet.rotation.x = -0.245;
+  g.add(bladeSet);
 
-  // кнопка, индикатор и рычаг регулировки ножа
-  const button = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 32), brass);
-  button.rotation.x = Math.PI / 2;
-  button.scale.set(1, 1, 1.9);
-  button.position.set(0, 1.0, radiusAt(1.0) * 0.78 + 0.008);
-  const led = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 12), new THREE.MeshBasicMaterial({ color: srgb(0x5fd39a) }));
-  led.position.set(0, 0.86, radiusAt(0.86) * 0.78 + 0.004);
+  // рычаг регулировки ножа на левом боку
   const lever = new THREE.Group();
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.04), brass);
-  arm.position.y = -0.11;
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.038, 24, 16), brass);
-  knob.position.y = -0.22;
-  lever.add(arm, knob);
-  lever.position.set(0.37, 1.3, 0);
-  lever.rotation.z = 0.25;
+  // ось рычага выходит из блока ножей, сам рычаг идёт вдоль бока снаружи корпуса
+  const pivot = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.075, 32), champagne);
+  pivot.rotation.z = Math.PI / 2;
+  pivot.position.x = 0.035;
+  const arm = new THREE.Mesh(
+    new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, -0.09, -0.035),
+        new THREE.Vector3(0, -0.19, -0.065),
+        new THREE.Vector3(0, -0.26, -0.068),
+      ]),
+      32,
+      0.016,
+      12,
+      false,
+    ),
+    champagne,
+  );
+  arm.scale.x = 0.6;
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.032, 24, 16), champagne);
+  knob.position.set(0, -0.27, -0.068);
+  knob.scale.x = 0.7;
+  lever.add(pivot, arm, knob);
+  lever.position.set(-0.292, 1.43, 0.04);
+  g.add(lever);
 
-  const g = new THREE.Group();
-  g.add(oval, fixed, moving, ...screws, button, led, lever);
-  g.scale.setScalar(1.02);
-  return { object: g, tiltX: 0.08 };
+  const body = new THREE.Group();
+  body.add(g);
+  body.rotation.z = 0.06;
+  body.scale.setScalar(1.15);
+  return { object: body, tiltX: 0.06 };
 }
 
 /** Горячее полотенце: махровый рулон со спиралью на торцах, полосы по краям и пар. */
