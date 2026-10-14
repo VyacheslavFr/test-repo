@@ -212,10 +212,6 @@ const NAV = [
 
 const fmtPrice = (n) => `${n.toLocaleString("ru-RU")} BYN`;
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
-const wrap = (min, max, v) => {
-  const range = max - min;
-  return ((((v - min) % range) + range) % range) + min;
-};
 const mulberry32 = (a) => () => {
   a |= 0;
   a = (a + 0x6d2b79f5) | 0;
@@ -447,14 +443,6 @@ function CountUp({ to, decimals = 0, play }) {
     return () => controls.stop();
   }, [play, to]);
   return value.toLocaleString("ru-RU", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-
-function Spark({ className = "" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path d="M12 0C12.6 7.2 16.8 11.4 24 12 16.8 12.6 12.6 16.8 12 24 11.4 16.8 7.2 12.6 0 12 7.2 11.4 11.4 7.2 12 0Z" fill="currentColor" />
-    </svg>
-  );
 }
 
 function Container({ children, className = "" }) {
@@ -1492,18 +1480,23 @@ function Hero({ ready, onNav }) {
       }}
       className="relative isolate overflow-hidden pb-24 pt-28 sm:pt-36 lg:flex lg:min-h-[100svh] lg:items-center lg:pt-32"
     >
-      <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ y: bgY }}>
-        <motion.div
-          className="absolute left-[34%] top-[-22%] h-[62vmax] w-[62vmax] rounded-full bg-[#DCE6DF] opacity-90 blur-[90px]"
-          style={{ x: glowX, y: glowY }}
-        />
-        <motion.div
-          className="absolute bottom-[-24%] left-[-14%] h-[46vmax] w-[46vmax] rounded-full bg-[#E7D6C5] opacity-70 blur-[100px]"
-          style={{ x: wordX }}
-          animate={{ scale: [1, 1.08, 1] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </motion.div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 [-webkit-mask-image:linear-gradient(to_bottom,#000_55%,transparent)] [mask-image:linear-gradient(to_bottom,#000_55%,transparent)]"
+      >
+        <motion.div className="absolute inset-0" style={{ y: bgY }}>
+          <motion.div
+            className="absolute left-[34%] top-[-22%] h-[62vmax] w-[62vmax] rounded-full bg-[#DCE6DF] opacity-90 blur-[90px]"
+            style={{ x: glowX, y: glowY }}
+          />
+          <motion.div
+            className="absolute bottom-[-24%] left-[-14%] h-[46vmax] w-[46vmax] rounded-full bg-[#E7D6C5] opacity-70 blur-[100px]"
+            style={{ x: wordX }}
+            animate={{ scale: [1, 1.08, 1] }}
+            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
+      </div>
 
       <Container className="grid items-center gap-16 lg:grid-cols-12 lg:gap-8">
         <motion.div className="lg:col-span-7" style={{ y: copyY }}>
@@ -1573,70 +1566,6 @@ function Hero({ ready, onNav }) {
         </motion.span>
         Листайте
       </motion.button>
-    </section>
-  );
-}
-
-/* ───────────────────────────── Бегущая строка ───────────────────── */
-
-function VelocityMarquee({ children, baseVelocity = -3 }) {
-  const reduced = useReducedMotion();
-  const baseX = useMotionValue(0);
-  const { scrollY } = useScroll();
-  const velocity = useVelocity(scrollY);
-  const smooth = useSpring(velocity, { damping: 50, stiffness: 400 });
-  const factor = useTransform(smooth, [0, 1000], [0, 4], { clamp: false });
-  const skew = useTransform(smooth, [-2500, 2500], [10, -10]);
-  const x = useTransform(baseX, (v) => `${wrap(-25, -50, v)}%`);
-  const dir = useRef(1);
-
-  useAnimationFrame((_, delta) => {
-    if (reduced) return;
-    let moveBy = dir.current * baseVelocity * (delta / 1000);
-    const f = factor.get();
-    if (f < 0) dir.current = -1;
-    else if (f > 0) dir.current = 1;
-    moveBy += dir.current * moveBy * f;
-    baseX.set(baseX.get() + moveBy);
-  });
-
-  return (
-    <div className="overflow-hidden whitespace-nowrap">
-      <motion.div className="flex w-max flex-nowrap" style={{ x, skewX: skew }}>
-        {[0, 1, 2, 3].map((k) => (
-          <div key={k} className="flex shrink-0 items-center" aria-hidden={k > 0 ? "true" : undefined}>
-            {children}
-          </div>
-        ))}
-      </motion.div>
-    </div>
-  );
-}
-
-function MarqueeBand() {
-  const words = ["Стрижка", "Королевское бритьё", "Скин-фейд", "Борода", "Горячее полотенце", "Камуфляж седины", "Укладка"];
-  return (
-    <section aria-label="Направления барбершопа" className="relative py-14 sm:py-20">
-      <div className="relative -ml-[5%] w-[110%] -rotate-[1.5deg] bg-[#E7D6C5] py-3 text-[#26332D] sm:py-4">
-        <VelocityMarquee baseVelocity={-3}>
-          {words.map((w) => (
-            <span key={w} className="flex items-center">
-              <span className="f-display px-6 text-[clamp(2rem,4.6vw,4rem)] font-medium italic leading-[1.15] sm:px-10">{w}</span>
-              <Spark className="h-4 w-4 text-[#4F7A68] sm:h-6 sm:w-6" />
-            </span>
-          ))}
-        </VelocityMarquee>
-      </div>
-      <div className="relative -ml-[5%] -mt-2 w-[110%] rotate-[1deg] bg-[#DCE6DF] py-3">
-        <VelocityMarquee baseVelocity={2}>
-          {words.map((w) => (
-            <span key={w} className="f-label flex items-center gap-6 px-6 text-[13px] uppercase tracking-[0.14em] text-[#26332D]/70">
-              {w}
-              <span className="h-1.5 w-1.5 rounded-full bg-[#4F7A68]" />
-            </span>
-          ))}
-        </VelocityMarquee>
-      </div>
     </section>
   );
 }
@@ -3271,7 +3200,6 @@ export default function BarbershopLanding() {
         <Nav ready={!loading} onNav={go} />
         <main>
           <Hero ready={!loading} onNav={go} />
-          <MarqueeBand />
           <Manifesto />
           <Services onSelect={pickService} />
           <Works onPick={pickService} />
