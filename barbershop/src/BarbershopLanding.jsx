@@ -1593,6 +1593,335 @@ function Hero({ ready, onNav }) {
   );
 }
 
+/* ─────────────── Манифест: 3D-столб барбершопа ─────────────── */
+
+const POLE_R = 0.3;
+const POLE_L = 2.24;
+
+/** Спиральные полосы столба: шалфей, крем, медь, крем. Рисуются попиксельно со сглаживанием 2×2. */
+function poleStripesTexture() {
+  return canvasTexture(512, 1024, (ctx, w, h) => {
+    const img = ctx.createImageData(w, h);
+    const turns = 3;
+    const rise = (turns * POLE_L) / (2 * Math.PI * POLE_R);
+    const bands = [
+      [0.3, [52, 88, 74]],
+      [0.5, [244, 240, 231]],
+      [0.6, [168, 98, 56]],
+      [1, [244, 240, 231]],
+    ];
+    const colorAt = (u, v) => {
+      const f = (((turns * u + rise * v) % 1) + 1) % 1;
+      return bands.find(([end]) => f < end)[1];
+    };
+    for (let y = 0; y < h; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        for (let sy = 0; sy < 2; sy += 1) {
+          for (let sx = 0; sx < 2; sx += 1) {
+            const c = colorAt((x + 0.25 + sx * 0.5) / w, 1 - (y + 0.25 + sy * 0.5) / h);
+            r += c[0];
+            g += c[1];
+            b += c[2];
+          }
+        }
+        const i = (y * w + x) * 4;
+        img.data[i] = r / 4;
+        img.data[i + 1] = g / 4;
+        img.data[i + 2] = b / 4;
+        img.data[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  });
+}
+
+/** Столб: стеклянная колба с вращающимися полосами, латунные основание и капитель, светящийся плафон и шпиль. */
+function buildBarberPole() {
+  const brass = new THREE.MeshStandardMaterial({ color: srgb(0xd6ac74), metalness: 1, roughness: 0.2 });
+  const g = new THREE.Group();
+
+  const stripes = new THREE.Mesh(
+    new THREE.CylinderGeometry(POLE_R, POLE_R, POLE_L, 96, 1, true),
+    new THREE.MeshPhysicalMaterial({ map: poleStripesTexture(), roughness: 0.42, clearcoat: 0.4, clearcoatRoughness: 0.2 }),
+  );
+  g.add(stripes);
+  // стекло: прозрачное, но блики остаются (transmission в r128 гасит альфу везде, кроме отражений)
+  const glass = new THREE.Mesh(
+    new THREE.CylinderGeometry(POLE_R + 0.035, POLE_R + 0.035, POLE_L + 0.02, 96, 1, true),
+    new THREE.MeshPhysicalMaterial({
+      color: srgb(0xffffff),
+      roughness: 0.05,
+      metalness: 0,
+      transmission: 0.94,
+      transparent: true,
+      clearcoat: 1,
+      clearcoatRoughness: 0.03,
+      depthWrite: false,
+    }),
+  );
+  glass.renderOrder = 2;
+  g.add(glass);
+  // отражение окна на стекле: стоит на месте, пока полосы бегут под ним, — так колба читается как стекло
+  const streakTex = canvasTexture(8, 256, (ctx, w, h) => {
+    const gr = ctx.createLinearGradient(0, 0, 0, h);
+    gr.addColorStop(0, "rgba(255,255,255,0)");
+    gr.addColorStop(0.15, "rgba(255,255,255,1)");
+    gr.addColorStop(0.85, "rgba(255,255,255,1)");
+    gr.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, w, h);
+  });
+  [
+    [-0.62, 0.16, 0.42],
+    [-0.38, 0.05, 0.3],
+    [0.75, 0.08, 0.16],
+  ].forEach(([theta, width, opacity]) => {
+    const streak = new THREE.Mesh(
+      new THREE.CylinderGeometry(POLE_R + 0.037, POLE_R + 0.037, POLE_L - 0.06, 8, 1, true, theta - width / 2, width),
+      new THREE.MeshBasicMaterial({ map: streakTex, transparent: true, opacity, depthWrite: false }),
+    );
+    streak.renderOrder = 3;
+    g.add(streak);
+  });
+
+  g.add(
+    new THREE.Mesh(
+      lathe(
+        [
+          [0, -1.86],
+          [0.025, -1.84],
+          [0.05, -1.78],
+          [0.075, -1.7],
+          [0.11, -1.62],
+          [0.16, -1.57],
+          [0.24, -1.54],
+          [0.3, -1.53],
+          [0.33, -1.51],
+          [0.34, -1.48],
+          [0.31, -1.45],
+          [0.31, -1.42],
+          [0.4, -1.39],
+          [0.44, -1.35],
+          [0.45, -1.3],
+          [0.45, -1.22],
+          [0.43, -1.18],
+          [0.39, -1.155],
+          [0.39, -1.12],
+          [0.36, -1.1],
+          [0, -1.1],
+        ],
+        96,
+      ),
+      brass,
+    ),
+  );
+  g.add(
+    new THREE.Mesh(
+      lathe(
+        [
+          [0, 1.1],
+          [0.36, 1.1],
+          [0.39, 1.12],
+          [0.39, 1.155],
+          [0.43, 1.18],
+          [0.45, 1.22],
+          [0.45, 1.3],
+          [0.44, 1.35],
+          [0.4, 1.39],
+          [0.31, 1.42],
+          [0.31, 1.45],
+          [0.27, 1.47],
+          [0.16, 1.49],
+          [0, 1.495],
+        ],
+        96,
+      ),
+      brass,
+    ),
+  );
+  [-1.1, 1.1].forEach((y) => {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(POLE_R + 0.05, 0.016, 12, 96), brass);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = y;
+    g.add(ring);
+  });
+  // молочный плафон-лампа и латунный шпиль
+  const globe = new THREE.Mesh(
+    new THREE.SphereGeometry(0.29, 64, 32),
+    new THREE.MeshPhysicalMaterial({
+      color: srgb(0xe6d8bf),
+      roughness: 0.3,
+      clearcoat: 1,
+      clearcoatRoughness: 0.05,
+      emissive: srgb(0xffd9a0),
+      emissiveIntensity: 0.16,
+    }),
+  );
+  globe.position.y = 1.76;
+  g.add(globe);
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.024, 12, 64), brass);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = 1.5;
+  g.add(collar);
+  g.add(
+    new THREE.Mesh(
+      lathe([
+        [0, 2.02],
+        [0.06, 2.03],
+        [0.07, 2.06],
+        [0.04, 2.1],
+        [0.022, 2.15],
+        [0.04, 2.19],
+        [0.045, 2.22],
+        [0.03, 2.25],
+        [0, 2.26],
+      ]),
+      brass,
+    ),
+  );
+  return { object: g, stripes, globe };
+}
+
+/** Вращающийся столб барбершопа: полосы бегут быстрее при прокрутке, плафон разгорается при наведении. */
+function BarberPole({ className = "" }) {
+  const wrapRef = useRef(null);
+  const canvasRef = useRef(null);
+  const api = useRef(null);
+  const reduced = useReducedMotion();
+  const visible = useInView(wrapRef, { amount: 0 });
+  const [webgl, setWebgl] = useState(true);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    } catch {
+      setWebgl(false);
+      return undefined;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+
+    const scene = new THREE.Scene();
+    scene.environment = studioEnvironment(renderer);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d2c6, 0.45));
+    const key = new THREE.DirectionalLight(0xfff6ea, 1.0);
+    key.position.set(3, 5, 4);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0xdfeee6, 0.6);
+    rim.position.set(-4, 2, -3);
+    scene.add(rim);
+
+    const pole = buildBarberPole();
+    scene.add(pole.object);
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshBasicMaterial({ map: softSpot(0.4), transparent: true, depthWrite: false }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = -1.98;
+    scene.add(shadow);
+
+    const camera = new THREE.PerspectiveCamera(22, 0.45, 0.1, 60);
+    const fit = (aspect) => {
+      const half = Math.tan(deg(camera.fov / 2));
+      const dist = Math.max(2.25 / half, 0.62 / (half * aspect));
+      camera.aspect = aspect;
+      camera.position.set(0, 0.2 + dist * Math.sin(deg(6)), dist * Math.cos(deg(6)));
+      camera.lookAt(0, 0.2, 0);
+      camera.updateProjectionMatrix();
+    };
+    const resize = () => {
+      const { width, height } = canvas.parentElement.getBoundingClientRect();
+      if (!width || !height) return;
+      renderer.setSize(width, height, false);
+      fit(width / height);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas.parentElement);
+    renderer.compile(scene, camera);
+
+    const state = { running: false, hover: 0, hoverTarget: 0, speed: reduced ? 0 : 0.6, lastY: window.scrollY };
+    pole.stripes.rotation.y = 0.4;
+    const clock = new THREE.Clock();
+    let raf = 0;
+    const frame = () => {
+      raf = requestAnimationFrame(frame);
+      if (!state.running) return;
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const y = window.scrollY;
+      const v = Math.abs(y - state.lastY) / Math.max(dt, 0.008);
+      state.lastY = y;
+      state.hover += (state.hoverTarget - state.hover) * 0.08;
+      const target = reduced ? 0 : 0.6 + Math.min(v, 3000) * 0.0011 + state.hover * 0.9;
+      state.speed += (target - state.speed) * 0.06;
+      pole.stripes.rotation.y += state.speed * dt;
+      pole.globe.material.emissiveIntensity = 0.16 + state.hover * 0.5;
+      renderer.render(scene, camera);
+    };
+    raf = requestAnimationFrame(frame);
+
+    api.current = {
+      setRunning: (on) => {
+        state.running = on;
+        if (on) {
+          clock.getDelta();
+          state.lastY = window.scrollY;
+        }
+      },
+      hover: (on) => {
+        state.hoverTarget = on ? 1 : 0;
+      },
+    };
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      scene.traverse((o) => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          o.material.map?.dispose();
+          o.material.dispose();
+        }
+      });
+      scene.environment?.dispose();
+      renderer.dispose();
+      api.current = null;
+    };
+  }, [reduced]);
+
+  useEffect(() => {
+    api.current?.setRunning(visible);
+  }, [visible, webgl]);
+
+  return (
+    <div ref={wrapRef} className={className} onPointerEnter={() => api.current?.hover(true)} onPointerLeave={() => api.current?.hover(false)}>
+      <div
+        aria-hidden="true"
+        className="absolute left-1/2 top-[6%] aspect-square w-[min(150%,260px)] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,244,222,0.95)_0%,rgba(231,214,197,0.45)_38%,rgba(231,214,197,0)_70%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute left-1/2 top-1/2 h-[80%] w-[min(120%,220px)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(220,230,223,0.9),rgba(220,230,223,0))]"
+      />
+      {webgl ? (
+        <canvas ref={canvasRef} role="img" aria-label="Вращающийся столб барбершопа" className="absolute inset-0 block h-full w-full" />
+      ) : (
+        <div aria-hidden="true" className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="h-[9%] w-[26%] rounded-full bg-[radial-gradient(circle_at_35%_35%,#FFFFFF,#F1E6D3_60%,#D8C3A5)]" />
+          <span className="h-[5%] w-[30%] rounded-[6px] bg-[linear-gradient(90deg,#9c7a4c,#ead2a4,#9c7a4c)]" />
+          <span className="h-[56%] w-[24%] bg-[repeating-linear-gradient(-50deg,#4F7A68_0_14px,#F6F2EA_14px_24px,#C58052_24px_29px,#F6F2EA_29px_38px)] shadow-[inset_-6px_0_12px_rgba(0,0,0,0.15),inset_6px_0_10px_rgba(255,255,255,0.4)]" />
+          <span className="h-[7%] w-[30%] rounded-b-[10px] bg-[linear-gradient(90deg,#9c7a4c,#ead2a4,#9c7a4c)]" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ───────────────────────────── Манифест (GSAP) ──────────────────── */
 
 const MANIFESTO = [
@@ -1626,9 +1955,9 @@ function Manifesto() {
         { scaleX: 1, ease: "none", scrollTrigger: { trigger: ref.current, start: "top 85%", end: "bottom 45%", scrub: true } },
       );
       gsap.fromTo(
-        ".mf-seal",
-        { rotate: -60, scale: 0.8 },
-        { rotate: 200, scale: 1, ease: "none", scrollTrigger: { trigger: ref.current, start: "top bottom", end: "bottom top", scrub: 0.6 } },
+        ".mf-pole",
+        { yPercent: 10 },
+        { yPercent: -8, ease: "none", scrollTrigger: { trigger: ref.current, start: "top bottom", end: "bottom top", scrub: 0.6 } },
       );
     }, ref);
     return () => ctx.revert();
@@ -1637,16 +1966,12 @@ function Manifesto() {
   return (
     <section ref={ref} aria-label="Манифест" className="relative py-24 sm:py-36">
       <Container className="grid gap-12 lg:grid-cols-12">
-        <div className="flex items-center gap-8 lg:col-span-3 lg:flex-col lg:items-start">
+        <div className="flex items-center justify-between gap-8 lg:col-span-3 lg:flex-col lg:items-start lg:justify-start">
           <p className="f-label text-[12px] uppercase tracking-[0.14em] text-[#4F7A68]">
             <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-[#4F7A68] align-middle" aria-hidden="true" />
             Манифест
           </p>
-          <div className="mf-seal relative aspect-square w-28 overflow-hidden rounded-full sm:w-40 lg:w-48">
-            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_28%,#FFFFFF_0%,#E7D6C5_38%,#DCE6DF_70%,#B9CFC2_100%)]" />
-            <div className="absolute inset-[10%] rounded-full border border-dashed border-white/80" />
-            <span className="f-display absolute inset-0 grid place-items-center text-3xl italic text-[#4F7A68] sm:text-4xl">O</span>
-          </div>
+          <BarberPole className="mf-pole relative h-48 w-20 shrink-0 sm:h-64 sm:w-28 lg:h-[460px] lg:w-full" />
         </div>
         <p className="mf-text f-display text-[clamp(1.9rem,4.2vw,3.9rem)] font-normal leading-[1.22] text-[#26332D] lg:col-span-9">
           {MANIFESTO.map((seg, si) =>
