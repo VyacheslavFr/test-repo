@@ -4456,10 +4456,7 @@ function Footer({ onNav }) {
           <p className="text-[15px] text-[#26332D]/85">{TELEGRAM}</p>
         </div>
       </Container>
-      <div className="f-display mt-16 select-none text-center text-[24vw] font-medium leading-[0.9] tracking-[0.03em]" aria-hidden="true">
-        <SplitLetters text="ONIX" trigger="view" stagger={0.07} letterClassName="accent-text" />
-      </div>
-      <Container className="f-label flex flex-col gap-4 border-t border-[#26332D]/15 py-6 text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55 sm:flex-row sm:items-center sm:justify-between">
+      <Container className="f-label mt-16 flex flex-col gap-4 border-t border-[#26332D]/15 py-6 text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55 sm:flex-row sm:items-center sm:justify-between">
         <span>© 2026 Onix Barbershop</span>
         <span>Сделано с точностью до 0,5 мм</span>
         <motion.button
