@@ -50,8 +50,13 @@ import {
   X,
 } from "lucide-react";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "meshoptimizer/decoder";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import scissorsModel from "../models/scissors.glb";
+import brushModel from "../models/brush.glb";
+import dryerModel from "../models/dryer.glb";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -837,7 +842,7 @@ function Nav({ ready, onNav }) {
 
 const SHOWCASE = [
   { key: "scissors", n: "01", name: "Ножницы", spec: "6″ · сталь 440C" },
-  { key: "comb", n: "02", name: "Гребень", spec: "22 см · ацетат" },
+  { key: "brush", n: "02", name: "Расчёска", spec: "вентилируемая щётка" },
   { key: "dryer", n: "03", name: "Фен", spec: "2200 Вт · 2 скорости" },
 ];
 const SHOW_HOLD = 3.6; // секунд на один инструмент
@@ -1245,7 +1250,95 @@ function buildDryer() {
   return { object: body, tiltX: 0.1 };
 }
 
-/** Правая половина героя: ножницы → гребень → фен, каждый крутится в 3D. */
+/* ───── Модели инструментов (glTF, CC BY 4.0, авторы указаны в подвале и README) ───── */
+
+/** Ставит модель вертикально в нужном ракурсе, центрирует по габаритам и подгоняет под размер `size`. */
+function fitModel(root, size, [rx, ry, rz]) {
+  const turn = new THREE.Group();
+  turn.quaternion.setFromEuler(new THREE.Euler(rx, ry, rz, "ZYX"));
+  turn.add(root);
+  const box = new THREE.Box3().setFromObject(turn);
+  const dims = box.getSize(new THREE.Vector3());
+  const holder = new THREE.Group();
+  holder.add(turn);
+  turn.position.copy(box.getCenter(new THREE.Vector3())).multiplyScalar(-1);
+  holder.scale.setScalar(size / Math.max(dims.x, dims.y, dims.z));
+  const out = new THREE.Group();
+  out.add(holder);
+  return out;
+}
+
+/** Ближайший предок с говорящим именем: у сжатой модели меши безымянные, имена остались у узлов. */
+const partName = (o) => {
+  for (let n = o; n; n = n.parent) if (/blade|handle|padding|damper|screw/i.test(n.name)) return n.name.toLowerCase();
+  return "";
+};
+
+/** Филировочные ножницы: в модели нет материалов — даём полированную сталь, силиконовые вставки и латунный винт. */
+function dressScissors(gltf) {
+  const steel = new THREE.MeshStandardMaterial({ color: srgb(0xdde2df), metalness: 1, roughness: 0.16 });
+  const silicone = new THREE.MeshStandardMaterial({ color: srgb(0x34403a), roughness: 0.75 });
+  const brass = new THREE.MeshStandardMaterial({ color: srgb(0xd6ac74), metalness: 1, roughness: 0.22 });
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const part = partName(o);
+    o.material = /padding|damper/.test(part) ? silicone : part.includes("screw") ? brass : steel;
+  });
+  // встроенный клип: с 0 до 0,6 с лезвия раскрываются, к 0,9 с смыкаются — берём из него только раскрытие
+  const clip = gltf.animations[0];
+  if (!clip) return {};
+  const mixer = new THREE.AnimationMixer(gltf.scene);
+  mixer.clipAction(clip).play();
+  mixer.setTime(0);
+  return { snip: (d) => mixer.setTime(clamp((d - 4) / 18, 0, 1) * 0.42) };
+}
+
+/** Массажная расчёска: голубой пластик перекрашен в шалфей, наконечники зубьев — в песочный. */
+function dressBrush(gltf) {
+  const looks = {
+    F6002AZU_0: { color: 0x4f7a68, roughness: 0.26, clearcoat: 1, clearcoatRoughness: 0.12 },
+    F6002AZU: { color: 0xe7d6c5, roughness: 0.3, clearcoat: 0.6 },
+    F6002BLA: { color: 0xf2eee6, roughness: 0.4 },
+    F6002NEG: { color: 0x1e2622, roughness: 0.32 },
+    F6002PLA: { color: 0x26302c, roughness: 0.58 },
+  };
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const look = looks[o.material?.name];
+    if (!look) return;
+    const { color, ...rest } = look;
+    o.material = new THREE.MeshPhysicalMaterial({ color: srgb(color), side: THREE.DoubleSide, ...rest });
+  });
+  return {};
+}
+
+// условие лицензии CC BY 4.0 — указать авторов; строка с ними выводится в подвале
+const MODEL_CREDITS = [
+  { title: "Barber's scissors", author: "DUCK_", url: "https://sketchfab.com/3d-models/barbers-scissors-8b9086eed6a048f8967044fa92a65c4a" },
+  { title: "Comb & Brush", author: "Armin Rezaei", url: "https://sketchfab.com/3d-models/comb-brush-12e00d81ecd94ddbb9e3bdf34c3d2e19" },
+  { title: "Hair Dryer", author: "sweedboy69", url: "https://sketchfab.com/3d-models/hair-dryer-4a32ed9cc04441bb83b480d056b6f314" },
+];
+
+const TOOL_MODELS = [
+  { url: scissorsModel, size: 3.05, turn: [0, 0, -0.3], tiltX: 0.18, dress: dressScissors },
+  { url: brushModel, size: 3.0, turn: [Math.PI / 2, 0, 0.95], tiltX: 0.16, dress: dressBrush },
+  { url: dryerModel, size: 3.05, turn: [0, 0, 0], tiltX: 0.06 },
+];
+
+/** Загружает три модели; если браузер не справится (нет WebAssembly для распаковки), сработает запасной вариант. */
+async function loadToolModels() {
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  return Promise.all(
+    TOOL_MODELS.map(async ({ url, size, turn, tiltX, dress }) => {
+      const gltf = await loader.loadAsync(url);
+      const extra = dress ? dress(gltf) : {};
+      return { object: fitModel(gltf.scene, size, turn), tiltX, ...extra };
+    }),
+  );
+}
+
+/** Правая половина героя: ножницы → расчёска → фен, каждый крутится в 3D. */
 function ToolsShowcase({ ready, progress }) {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -1296,22 +1389,44 @@ function ToolsShowcase({ ready, progress }) {
     shadow.position.y = -1.55;
     scene.add(shadow);
 
-    const tools = [buildScissors(), buildComb(), buildDryer()].map((t) => {
-      const spin = new THREE.Group();
-      spin.rotation.order = "YXZ";
-      spin.add(t.object);
-      spin.scale.setScalar(0.001);
-      spin.visible = false;
-      scene.add(spin);
-      return { ...t, spin, extra: { v: 0 }, pos: { y: -0.6 } };
-    });
-
-    // компилируем шейдеры заранее, пока идёт заставка, чтобы смена инструментов не дёргалась
-    tools.forEach((tool) => (tool.spin.visible = true));
-    renderer.compile(scene, camera);
-    tools.forEach((tool) => (tool.spin.visible = false));
-
-    const state = { current: -1, drag: 0, vel: 0, tiltX: 0, tiltY: 0, targetX: 0, targetY: 0, dragging: false, lastX: 0, timer: null, running: false };
+    const state = {
+      current: -1,
+      wantStart: false,
+      drag: 0,
+      vel: 0,
+      tiltX: 0,
+      tiltY: 0,
+      targetX: 0,
+      targetY: 0,
+      dragging: false,
+      lastX: 0,
+      timer: null,
+      running: false,
+    };
+    let tools = [];
+    let disposed = false;
+    // модели грузятся, пока идёт заставка; если распаковать не вышло, показываем нарисованные в коде инструменты
+    const install = (list) => {
+      if (disposed) {
+        list.forEach((t) => t.object.traverse((o) => o.geometry?.dispose()));
+        return;
+      }
+      tools = list.map((t) => {
+        const spin = new THREE.Group();
+        spin.rotation.order = "YXZ";
+        spin.add(t.object);
+        spin.scale.setScalar(0.001);
+        spin.visible = false;
+        scene.add(spin);
+        return { ...t, spin, extra: { v: 0 }, pos: { y: -0.6 } };
+      });
+      // компилируем шейдеры заранее, чтобы смена инструментов не дёргалась
+      tools.forEach((tool) => (tool.spin.visible = true));
+      renderer.compile(scene, camera);
+      tools.forEach((tool) => (tool.spin.visible = false));
+      if (state.wantStart && state.current === -1) show(0);
+    };
+    loadToolModels().then(install, () => install([buildScissors(), buildComb(), buildDryer()]));
     let raf = 0;
     const clock = new THREE.Clock();
     let t = 0;
@@ -1383,7 +1498,8 @@ function ToolsShowcase({ ready, progress }) {
 
     api.current = {
       start: () => {
-        if (state.current === -1) show(0);
+        state.wantStart = true;
+        if (tools.length && state.current === -1) show(0);
       },
       show: (i) => show(i),
       setRunning: (on) => {
@@ -1413,6 +1529,7 @@ function ToolsShowcase({ ready, progress }) {
     };
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
       state.timer?.kill();
@@ -4469,6 +4586,28 @@ function Footer({ onNav }) {
           Наверх
           <ArrowDown size={12} className="rotate-180" />
         </motion.button>
+      </Container>
+      <Container className="pb-8 text-[11px] leading-relaxed text-[#26332D]/45">
+        3D-модели:{" "}
+        {MODEL_CREDITS.map((m, i) => (
+          <React.Fragment key={m.title}>
+            {i > 0 ? ", " : ""}
+            <a href={m.url} target="_blank" rel="noreferrer" className="underline decoration-[#26332D]/20 underline-offset-2 hover:text-[#4F7A68]">
+              «{m.title}»
+            </a>{" "}
+            — {m.author}
+          </React.Fragment>
+        ))}
+        ,{" "}
+        <a
+          href="https://creativecommons.org/licenses/by/4.0/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline decoration-[#26332D]/20 underline-offset-2 hover:text-[#4F7A68]"
+        >
+          CC BY 4.0
+        </a>
+        .
       </Container>
     </footer>
   );

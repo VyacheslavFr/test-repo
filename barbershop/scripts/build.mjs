@@ -2,7 +2,7 @@
 //  • index.html          — самостоятельный HTML-документ (открывается в браузере);
 //  • dist/artifact.html  — фрагмент без <html>/<head>/<body> для публикации как Artifact.
 // Библиотеки (React, Framer Motion, Lucide, GSAP, Three.js) грузятся с CDN как UMD-глобалы,
-// а код страницы и Tailwind CSS встраиваются инлайном.
+// а код страницы, загрузчик glTF с декодером meshopt, модели и Tailwind CSS встраиваются инлайном.
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -41,6 +41,8 @@ const js = await build({
   jsx: "transform",
   minifySyntax: true,
   legalComments: "none",
+  // 3D-модели инструментов (models/*.glb) встраиваются в страницу как data: URL — отдельные файлы не нужны
+  loader: { ".glb": "dataurl" },
   plugins: [cdnGlobals],
 });
 const app = js.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
