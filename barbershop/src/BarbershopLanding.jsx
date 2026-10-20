@@ -57,6 +57,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import scissorsModel from "../models/scissors.glb";
 import brushModel from "../models/brush.glb";
 import dryerModel from "../models/dryer.glb";
+import { LOGO_FULL, LOGO_MARK } from "./logo.js";
 
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -473,6 +474,24 @@ function CountUp({ to, decimals = 0, play }) {
   return value.toLocaleString("ru-RU", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
+/** Логотип: `mark` — эмблема (причёска, монокль, усы, ножницы), `full` — эмблема с надписью ONIX Barbershop. */
+function Logo({ variant = "mark", title, className = "" }) {
+  const g = variant === "full" ? LOGO_FULL : LOGO_MARK;
+  return (
+    <svg
+      viewBox={`0 0 ${g.width} ${g.height}`}
+      fill="currentColor"
+      className={className}
+      role={title ? "img" : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : "true"}
+      focusable="false"
+    >
+      <path transform={`translate(0 ${g.height}) scale(1 -1)`} d={g.d} />
+    </svg>
+  );
+}
+
 function Container({ children, className = "" }) {
   return <div className={`mx-auto w-full max-w-[1440px] px-4 sm:px-8 lg:px-12 ${className}`}>{children}</div>;
 }
@@ -535,6 +554,18 @@ function LoaderFace({ count, cut }) {
       <div className="f-label absolute left-4 right-4 top-6 flex justify-between text-[11px] uppercase tracking-[0.14em] text-[#26332D]/55 sm:left-10 sm:right-10 sm:top-8">
         <span>Onix Barbershop · Гомель</span>
         <span>Est. 2014</span>
+      </div>
+      <div
+        aria-hidden="true"
+        className="absolute left-1/2 top-[calc(50%-clamp(2.6rem,11vw,8rem)-1.25rem)] w-[clamp(4.5rem,15vw,8.5rem)] -translate-x-1/2 -translate-y-full text-[#26332D]"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 24, clipPath: "inset(100% 0% 0% 0%)" }}
+          animate={{ opacity: 1, y: 0, clipPath: "inset(0% 0% 0% 0%)" }}
+          transition={{ duration: 1.2, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <Logo className="block h-auto w-full" />
+        </motion.div>
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="f-display flex text-[clamp(5rem,22vw,16rem)] font-medium leading-[0.92] tracking-[0.04em]" aria-hidden="true">
@@ -723,12 +754,15 @@ function Nav({ ready, onNav }) {
                 e.preventDefault();
                 go("top");
               }}
-              className="flex items-baseline gap-3"
+              className="flex items-center gap-3"
               aria-label="Onix Barbershop — наверх"
             >
-              <span className="f-display text-2xl font-semibold tracking-[0.16em] text-[#26332D]">ONIX</span>
-              <span className="f-label text-[10px] uppercase tracking-[0.14em] text-[#4F7A68]">
-                Barbershop<span className="hidden sm:inline"> · Gomel</span>
+              <Logo className="h-10 w-auto shrink-0 text-[#26332D] sm:h-11" />
+              <span className="flex items-baseline gap-3">
+                <span className="f-display text-2xl font-semibold tracking-[0.16em] text-[#26332D]">ONIX</span>
+                <span className="f-label text-[10px] uppercase tracking-[0.14em] text-[#4F7A68]">
+                  Barbershop<span className="hidden sm:inline"> · Gomel</span>
+                </span>
               </span>
             </a>
             <ul className="hidden items-center gap-9 lg:flex">
@@ -4554,8 +4588,8 @@ function Footer({ onNav }) {
     <footer className="relative overflow-hidden border-t border-[#26332D]/15 pt-20">
       <Container className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="f-display text-3xl font-medium">Onix Barbershop</p>
-          <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-[#26332D]/60">
+          <Logo variant="full" title="Onix Barbershop" className="h-36 w-auto text-[#26332D]" />
+          <p className="mt-5 max-w-xs text-[14px] leading-relaxed text-[#26332D]/60">
             Мужской барбершоп в центре Гомеля, рядом с дворцовым парком. Стрижки, бритьё и уход за бородой по записи.
           </p>
         </div>

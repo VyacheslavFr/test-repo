@@ -50,7 +50,9 @@ const app = js.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
 execFileSync(p("node_modules/.bin/tailwindcss"), ["-c", p("tailwind.config.cjs"), "-i", p("src/tailwind.css"), "-o", p("dist/tailwind.css"), "--minify"], { stdio: "inherit", cwd: root });
 const css = readFileSync(p("dist/tailwind.css"), "utf8");
 
+const favicon = `data:image/png;base64,${readFileSync(p("brand/favicon.png")).toString("base64")}`;
 const fragment = readFileSync(p("src/template.html"), "utf8")
+  .replace("__FAVICON__", () => favicon)
   .replace("/*__TAILWIND__*/", () => css)
   .replace("/*__APP__*/", () => app);
 
